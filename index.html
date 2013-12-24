@@ -42,9 +42,11 @@ function initialize() {
     var map = new google.maps.Map(document.getElementById('map'), {
                     zoom: 3,
                     center: center,
-                    mapTypeId: google.maps.MapTypeId.ROADMAP
+                    mapTypeId: google.maps.MapTypeId.ROADMAP,
+                    maxZoom: 18
                 });
 
+    window.map = map;
     var markers = [];
     for (var i = 0; i < addressPoints.length; i++) {
         var data= addressPoints[i];

@@ -1075,6 +1075,7 @@ ClusterIcon.prototype.triggerClusterClick = function() {
   //console.log('triggerClusterClick!');
   var markerClusterer = this.cluster_.getMarkerClusterer();
   var zoom = this.map_.getZoom();
+  var mzMap = this.map_.maxZoom || 21;
   var mz = markerClusterer.getMaxZoom();
 
   //console.log('zoom ', zoom);
@@ -1086,9 +1087,8 @@ ClusterIcon.prototype.triggerClusterClick = function() {
       // Zoom into the cluster.
       // si ha llegado a un máximo y sigue agrupado
       // es porque los markers son demasiado cercanos entre si
-      if (zoom === 21) {
+      if (zoom === mzMap || ( mz && zoom > mz )) {
           console.log('expandir!');
-          markerClusterer.redraw();
           this.expandMarkerer();
       }else {
           this.map_.fitBounds(this.cluster_.getBounds());
