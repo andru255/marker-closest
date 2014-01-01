@@ -1,21 +1,3 @@
-// ==ClosureCompiler==
-// @compilation_level ADVANCED_OPTIMIZATIONS
-// @externs_url http://closure-compiler.googlecode.com/svn/trunk/contrib/externs/maps/google_maps_api_v3_3.js
-// ==/ClosureCompiler==
-
-/**
- * @name MarkerClusterer for Google Maps v3
- * @version version 1.0.1
- * @author Luke Mahe
- * @fileoverview
- * The library creates and manages per-zoom-level clusters for large amounts of
- * markers.
- * <br/>
- * This is a v3 implementation of the
- * <a href="http://gmaps-utility-library-dev.googlecode.com/svn/tags/markerclusterer/"
- * >v2 MarkerClusterer</a>.
- */
-
 /**
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -811,56 +793,6 @@ MarkerClusterer.prototype.createClusters_ = function() {
     }
   }
 };
-
-// Export Symbols for Closure
-// If you are not going to compile with closure then you can remove the
-// code below.
-//window['MarkerClusterer'] = MarkerClusterer;
-//MarkerClusterer.prototype['addMarker'] = MarkerClusterer.prototype.addMarker;
-//MarkerClusterer.prototype['addMarkers'] = MarkerClusterer.prototype.addMarkers;
-//MarkerClusterer.prototype['clearMarkers'] =
-    //MarkerClusterer.prototype.clearMarkers;
-//MarkerClusterer.prototype['fitMapToMarkers'] =
-    //MarkerClusterer.prototype.fitMapToMarkers;
-//MarkerClusterer.prototype['getCalculator'] =
-    //MarkerClusterer.prototype.getCalculator;
-//MarkerClusterer.prototype['getGridSize'] =
-    //MarkerClusterer.prototype.getGridSize;
-//MarkerClusterer.prototype['getExtendedBounds'] =
-    //MarkerClusterer.prototype.getExtendedBounds;
-//MarkerClusterer.prototype['getMap'] = MarkerClusterer.prototype.getMap;
-//MarkerClusterer.prototype['getMarkers'] = MarkerClusterer.prototype.getMarkers;
-//MarkerClusterer.prototype['getMaxZoom'] = MarkerClusterer.prototype.getMaxZoom;
-//MarkerClusterer.prototype['getStyles'] = MarkerClusterer.prototype.getStyles;
-//MarkerClusterer.prototype['getTotalClusters'] =
-    //MarkerClusterer.prototype.getTotalClusters;
-//MarkerClusterer.prototype['getTotalMarkers'] =
-    //MarkerClusterer.prototype.getTotalMarkers;
-//MarkerClusterer.prototype['redraw'] = MarkerClusterer.prototype.redraw;
-//MarkerClusterer.prototype['removeMarker'] =
-    //MarkerClusterer.prototype.removeMarker;
-//MarkerClusterer.prototype['removeMarkers'] =
-    //MarkerClusterer.prototype.removeMarkers;
-//MarkerClusterer.prototype['resetViewport'] =
-    //MarkerClusterer.prototype.resetViewport;
-//MarkerClusterer.prototype['repaint'] =
-    //MarkerClusterer.prototype.repaint;
-//MarkerClusterer.prototype['setCalculator'] =
-    //MarkerClusterer.prototype.setCalculator;
-//MarkerClusterer.prototype['setGridSize'] =
-    //MarkerClusterer.prototype.setGridSize;
-//MarkerClusterer.prototype['setMaxZoom'] =
-    //MarkerClusterer.prototype.setMaxZoom;
-//MarkerClusterer.prototype['onAdd'] = MarkerClusterer.prototype.onAdd;
-//MarkerClusterer.prototype['draw'] = MarkerClusterer.prototype.draw;
-
-//Cluster.prototype['getCenter'] = Cluster.prototype.getCenter;
-//Cluster.prototype['getSize'] = Cluster.prototype.getSize;
-//Cluster.prototype['getMarkers'] = Cluster.prototype.getMarkers;
-
-//ClusterIcon.prototype['onAdd'] = ClusterIcon.prototype.onAdd;
-//ClusterIcon.prototype['draw'] = ClusterIcon.prototype.draw;
-//ClusterIcon.prototype['onRemove'] = ClusterIcon.prototype.onRemove;
 
 Object.keys = Object.keys || function(o) {
     var result = [];
