@@ -51,7 +51,10 @@ ClusterIcon.prototype.triggerClusterClick = function() {
       // es porque los markers son demasiado cercanos entre si
       if (zoom === mzMap || ( mz && zoom > mz )) {
           //console.log('expandir!');
-          this.OverlappingMarkerSpiderfier();
+          //console.log('this', this);
+          //return;
+          //this.OverlappingMarkerSpiderfier();
+          var markerOverlap = new MarkerOverlap(this.cluster_);
           //google.maps.event.trigger(markerClusterer, 'clusterclickLastZoom', this);
       }else {
           this.map_.fitBounds(this.cluster_.getBounds());
@@ -59,122 +62,6 @@ ClusterIcon.prototype.triggerClusterClick = function() {
   }
 };
 
-ClusterIcon.prototype.OverlappingMarkerSpiderfier = function(){
-  //config
-  this.configOverLap= {
-    _2PI: Math.PI * 2,
-    _circleFootSeparation: 25,
-    _circleStartAngle: Math.PI / 6,
-    _spiralFootSeparation: 28,
-    _spiralLenghtStart: 11,
-    _spiralLengthFactor: 5,
-    _circleSpiralSwitchover: 9
-  };
-
-
-  var markerClusterer = this.cluster_.getMarkerClusterer();
-
-  var cluster = this.cluster_,
-      markers = cluster.markers_,
-      map = this.map_,
-      //factor = 0.00001, cuando tiene el máximo zoom = 21
-      factor = 0.00001,
-      hideMarkersBeforeExpanded = function(){
-          var expandedMarkers = markerClusterer.expandedMarkers_;
-          if(expandedMarkers.length){
-              for (var i = 0, marker; marker = expandedMarkers[i]; i++) {
-                  if(marker.active){
-                      marker.point.setMap(null);
-                      delete marker;
-                  }
-              }
-          }
-      },
-      showMarkers = function(marker, destination){
-        var point = new google.maps.Marker();
-        var toLat = marker.position.lat() + factor;
-        var toLng = marker.position.lng() + factor;
-        var to = new google.maps.LatLng(toLat, toLng);
-        point.setPosition(to);
-        point.setMap(map);
-        markerClusterer.expandedMarkers_.push({point: point, active: true});
-        //la suma debe ser proporcional según el maxzoom dado
-        //dándose los casos
-        //maxzoom = 21 el factor sería que autosume a 0.00001
-        //maxzoom = 18 el factor sería que autosume a 0.00011
-        factor+=0.00011;
-      };
-
-  hideMarkersBeforeExpanded();
-  for (var i = 0, marker; marker = markers[i]; i++) {
-      //marker.setPosition();
-      showMarkers(marker);
-      //marker.setMap(this.map_);
-  }
-  //hide the cluster
-  this.hide();
-};
-
-ClusterIcon.prototype._spiderfy = function(markerData){
-    this.spiderfy = true;
-    var numMarkers = markerData.length,
-        getBodyPt = function(){
-            for(var i = 0; i < numMarkers.length; i++){
-
-            }
-        },
-        bodyPt = this.ptAverage();
-
-};
-
-ClusterIcon.prototype.generatePtsSpiral = function(count,centerPt){
-      var legLength = this.configOverLap['spiralLengthStart'],
-          twoPi = this.configOverLap['_2PI'],
-          angle = 0,
-          pt,
-          _results = [];
-      for(var i = 0; i < count; i++){
-          angle += this.configOverLap['_spiralFootSeparation'] / legLength + i * 0.0005;
-          _results.push(new google.maps.Point(centerPt.x + legLength * Math.cos(angle),
-                        centerPt.y + legLength * Math.sin(angle)));
-          legLength += twoPi * this.configOverLap['_spiralLengthFactor'] / angle;
-      }
-      return _results;
-};
-
-ClusterIcon.prototype.generatePtsCircle = function(count, centerPt){
-    var circumference = this.configOverLap['_circleFootSeparation'] * (2 + count),
-        twoPi = this.configOverLap['_2PI'],
-        legLength = circumference / twoPi,
-        angleStep = twoPi / count,
-        _results = [];
-      for(var i = 0; i < count; i++){
-        angle = this.configOverLap['circleStartAngle'] + i * angleStep;
-        _results.push(  new google.maps.Point(centerPt.x + legLength * Math.cos(angle),
-                                     centerPt.y + legLength * Math.sin(angle)) );
-      }
-      return _results;
-};
-
-ClusterIcon.prototype.llToPt =function(ll) {
-    return this.cluster_.getProjection().fromLatLngToDivPixel(ll)
-};
-
-ClusterIcon.prototype.ptToLl =function(pt) {
-    return this.cluster_.getProjection().fromDivPixelToLatLng(pt)
-};
-
-ClusterIcon.prototype.ptAverage = function(pts){
-    var sumX = 0,
-        sumY = 0,
-        numPts = pts.length;
-    for (var i = 0; i < pts.length; i++){
-        var pt = pts[i];
-        sumX += pt.x;
-        sumY += pt.y;
-    }
-    return new google.maps.Point(sumX / numPts, sumY / numPts);
-};
 /**
  * Adding the cluster icon to the dom.
  * @ignore
