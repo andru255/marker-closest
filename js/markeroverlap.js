@@ -100,7 +100,7 @@ function MarkerOverlap(cluster){
 MarkerOverlap.prototype.init = function(marker){
   var markers = this.cluster_.markers_;
   //hide the clusterIcon
-  this.clusterIcon_.hide();
+  //this.clusterIcon_.hide();
 };
 
 MarkerOverlap.prototype.initMarkerArrays = function(marker){
@@ -158,7 +158,7 @@ MarkerOverlap.prototype.spiderListener = function(cluster){
                 //append to nearbyMarkerData
                 nearbyMarkerData.push({
                     marker: marker,
-                    markerPoint: markerPoint
+                    markerPoint: markerPt
                 });
             }
         }
@@ -248,7 +248,7 @@ MarkerOverlap.prototype.ptToLl =function(pt) {
 MarkerOverlap.prototype.ptDistanceSq = function(pt1, pt2){
     var distanceX, distanceY;
     distanceX = pt1.x - pt2.x;
-    distanceY = pt1.x - pt2.y;
+    distanceY = pt1.y - pt2.y;
     return distanceX * distanceX + distanceY * distanceY;
 };
 MarkerOverlap.prototype.ptAverage = function(pts){
