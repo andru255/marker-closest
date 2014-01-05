@@ -17,6 +17,7 @@ function MarkerOverlap(cluster){
   this.GE = this.GM.event;
   this.MT = this.GM.MapTypeId;
   this.PI2 = Math.PI * 2;
+  this.listeners = {};
   //settings
   this.keepSpiderfied = false; //yes -> don't unspiderfy when a marker is selected
   this.markersWontHide = false; //yes -> a promise you won't hide markers, so we needn't check
@@ -126,41 +127,24 @@ MarkerOverlap.prototype.spiderListener = function(cluster){
     if(markerSpiderfied || this.map.getStreetView().getVisible() || this.map.getMapTypeId() === 'GoogleEarthAPI'){
 
     } else {
-        console.log('spiderfy!');
         var nearbyMarkerData = [];
         var nonNearbyMarkers = [];
-        //call the distance for settings
-        var nDist = this.nearbyDistance;
-        console.log('nDist', nDist);
-        //elevation for 2 to nDist
-        var pxSq = nDist * nDist;
-        console.log('pxSq ', pxSq );
-        //transform the position of the marker to pixel
-        var markerPtMain = this.llToPt(new this.GM.LatLng(cluster.center_.lat(), cluster.center_.lng()));
-        console.log('markerPtMain', markerPtMain);
         //reference to list of markers expendaded
         var markers = cluster.markers_;
         console.log('markers', markers);
         //declare a variable for transform the position of pixels
         var markerPt = null;
-
         for (var i = 0, marker; marker = markers[i]; i++) {
             //if(!(marker.map!=null) && marker.getVisible()){
                 //continue;
             //}
             markerPt = this.llToPt(marker.position);
             //compare the principal marker with others and verify
-            //is shorthen than pxSq
-            console.log('markerPtMain', markerPtMain);
-            console.log('markerPt', markerPt);
-            console.log('ptDistanceSq', this.ptDistanceSq(markerPt, markerPtMain));
-            if(this.ptDistanceSq(markerPt, markerPtMain) < pxSq){
-                //append to nearbyMarkerData
-                nearbyMarkerData.push({
-                    marker: marker,
-                    markerPoint: markerPt
-                });
-            }
+            //append to nearbyMarkerData
+            nearbyMarkerData.push({
+                marker: marker,
+                markerPoint: markerPt
+            });
         }
         //prepare for create a shapes
         if(nearbyMarkerData.length === 1){
@@ -169,6 +153,7 @@ MarkerOverlap.prototype.spiderListener = function(cluster){
             this.spiderfy(nearbyMarkerData);
         };
     }
+    this.clusterIcon_.hide();
 };
 
 MarkerOverlap.prototype.unspiderfy = function(markerNotToMove){
@@ -184,25 +169,68 @@ MarkerOverlap.prototype.unspiderfy = function(markerNotToMove){
 };
 
 MarkerOverlap.prototype.spiderfy = function(markerData){
-    console.log('spiderfy esto--->', markerData);
+    var _this = this;
     this.spiderfying = true;
+    console.log('spiderfy esto--->', markerData.length);
     var numMarkers = markerData.length,
         getBodyPt = function(){
             var result = [];
-            for(var i = 0; i < numMarkers.length; i++){
-                result.push(numMarkers[i].markerPt);
+            for(var i = 0; i < markerData.length; i++){
+                result.push(markerData[i].markerPoint);
             }
             return result;
         },
         collectionPointsNearby = getBodyPt(),
         footPts,
+        footLl,
+        nearestMarkerDatum,
+        highlightListenerFuncs,
+        marker;
         bodyPt = this.ptAverage(collectionPointsNearby);
-
         if(numMarkers >= this.circleSpiralSwitchover){
            footPts = this.generatePtsSpiral(numMarkers, bodyPt).reverse();
         } else {
-
+           footPts = this.generatePtsCircle(numMarkers, bodyPt);
         }
+    var getSpiderfiedMarkers = function(){
+        var _results = [],
+            footPt;
+        for(var point = 0; point < footPts.length; point++){
+            footPt = footPts[point];
+            footLl = _this.ptToLl(footPt);
+            nearestMarkerDatum = _this.minExtract(markerData, function(md){
+                return _this.ptDistanceSq(md.markerPoint, footPt);
+            });
+            marker = nearestMarkerDatum.marker;
+            leg = new _this.GM.Polyline({
+                map: _this.map,
+                path: [marker.position, footLl],
+                strokeColor: _this.legColors.usual[_this.map.mapTypeId],
+                strokeWeight: _this.legWeight,
+                zIndex: _this.usualLegZIndex
+            });
+            marker._omsData = {
+                usualPosition: marker.position,
+                leg: leg
+            };
+        };
+        if(_this.legColors.highlighted[_this.map.mapTypeId] !== _this.legColors.usual[_this.map.mapTypeId]){
+            highlightListenerFuncs  = _this.makeHighlightListenerFuncs(marker);
+            marker._omsData.highlightListeners = {
+                highlight: _this.GE.addListener(marker, 'mouseover', highlightListenerFuncs.highlight),
+                highlight: _this.GE.addListener(marker, 'mouseout', highlightListenerFuncs.unhighlight)
+            };
+        }
+        console.log('footLl', footLl);
+        marker.setPosition(footLl);
+        marker.setZIndex(Math.round(this.spiderfiedZIndex + footPt.y));
+        _results.push(marker);
+        return _results;
+    };
+    spiderfiedMarkers = getSpiderfiedMarkers();
+    delete this.spiderfying;
+    this.spiderfied = true;
+    return this.trigger('spiderfy', spiderfiedMarkers);
 };
 
 MarkerOverlap.prototype.generatePtsCircle = function(count, centerPt){
@@ -226,7 +254,7 @@ MarkerOverlap.prototype.generatePtsSpiral = function(count,centerPt){
           angle = 0,
           pt,
           _results = [];
-      for(var i = 0; i <= count; i++){
+      for(var i = 0; i < count; i++){
           angle += this.spiralFootSeparation / legLength + i * 0.0005;
           pt = new this.GM.Point(centerPt.x + legLength * Math.cos(angle),
                                  centerPt.y + legLength * Math.sin(angle))
@@ -245,6 +273,53 @@ MarkerOverlap.prototype.ptToLl =function(pt) {
     return this.clusterIcon_.getProjection().fromDivPixelToLatLng(pt);
 };
 
+MarkerOverlap.prototype.makeHighlightListenerFuncs =function(marker) {
+    var _this = this;
+    return {
+        highlight: function(){
+            return marker._omsData.leg.setOptions({
+                strokeColor: _this.legColors.highlighted[_this.map.mapTypeId],
+                zIndex: _this.highlightedLegZIndex
+            });
+        },
+        unhighlight: function(){
+            return marker._omsData.leg.setOptions({
+                strokeColor: _this.legColors.usual[_this.map.mapTypeId],
+                zIndex: _this.usualLegZIndex
+            });
+        }
+    };
+};
+
+MarkerOverlap.prototype.minExtract =function(set, fn) {
+    var bestIndex,
+        bestVal,
+        item,
+        val;
+    for(var i= 0; i< set.length; i++){
+       item = set[i];
+       val = fn(item);
+       if(( typeof bestIndex === "undefined" || bestIndex === null ) || val < bestVal){
+           bestVal = val;
+           bestIndex = i;
+       }
+    };
+    return set.splice(bestIndex, 1)[0];
+};
+
+MarkerOverlap.prototype.arrIndexOf =function(arr, obj) {
+    var o;
+    if(arr.indexOf != null){
+        return arr.indexOf(obj);
+    }
+    for(var i = 0; i < arr.length; i++){
+        o = arr[i];
+        if( o === obj){
+            return i;
+        }
+    }
+    return -1;
+}
 MarkerOverlap.prototype.ptDistanceSq = function(pt1, pt2){
     var distanceX, distanceY;
     distanceX = pt1.x - pt2.x;
@@ -262,3 +337,16 @@ MarkerOverlap.prototype.ptAverage = function(pts){
     }
     return new this.GM.Point(sumX / numPts, sumY / numPts);
 };
+MarkerOverlap.prototype.trigger = function(){
+    var event = arguments[0],
+        __slice = [].slice,
+        args = 2 <= arguments.length? __slice.call(arguments, 1) : [],
+        _ref3 = (_ref2 = this.listeners[event]) != null ? _ref2 : [],
+        _result = [],
+        fn;
+    for(var i = 0; i < _ref3.length; i++){
+        fn = _ref3[i];
+        _result.push(fn.apply(null, args));
+    }
+    return _result;
+}
