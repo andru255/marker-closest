@@ -159,10 +159,12 @@ function MarkerClusterer(map, opt_markers, opt_options) {
       that.prevZoom_ = zoom;
       that.resetViewport();
     }
+    that.zoomChangedCluster && that.zoomChangedCluster.apply(this);
   });
 
   google.maps.event.addListener(this.map_, 'idle', function() {
     that.redraw();
+    that.idleCLuster && that.idleCLuster.apply(this);
   });
 
   // Finally, add the markers

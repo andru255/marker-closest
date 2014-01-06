@@ -3,15 +3,6 @@ function MarkerOverlap(cluster){
   this.cluster_ = cluster;
   this.clusterIcon_ = this.cluster_.clusterIcon_;
 
-  //config
-  //this.configOverLap= {
-    //_circleFootSeparation: 25,
-    //_circleStartAngle: Math.PI / 6,
-    //_spiralFootSeparation: 28,
-    //_spiralLenghtStart: 11,
-    //_spiralLengthFactor: 5,
-    //_circleSpiralSwitchover: 9
-  //};
   //CONSTANTS
   this.GM = google.maps;
   this.GE = this.GM.event;
@@ -53,59 +44,30 @@ function MarkerOverlap(cluster){
   //process
   this.markerClusterer = this.cluster_.getMarkerClusterer();
   this.map = this.cluster_.map_;
-  var that = this;
-  var markers = this.cluster_.markers_,
-      map = this.cluster_.map_,
-      //factor = 0.00001, cuando tiene el máximo zoom = 21
-      factor = 0,
-      hideMarkersBeforeExpanded = function(){
-          var expandedMarkers = this.markerClusterer.expandedMarkers_;
-          if(expandedMarkers.length){
-              for (var i = 0, marker; marker = expandedMarkers[i]; i++) {
-                  if(marker.active){
-                      marker.point.setMap(null);
-                      delete marker;
-                  }
-              }
-          }
-      };
-      var showMarkers = function(marker, destination){
-        var point = new that.GM.Marker();
-        var toLat = marker.position.lat() + factor;
-        var toLng = marker.position.lng() + factor;
-        var to = new that.GM.LatLng(toLat, toLng);
-        point.setPosition(to);
-        point.setMap(map);
-        that.markerClusterer.expandedMarkers_.push({point: point, active: true});
-        //la suma debe ser proporcional según el maxzoom dado
-        //dándose los casos
-        //maxzoom = 21 el factor sería que autosume a 0.00001
-        //maxzoom = 18 el factor sería que autosume a 0.00011
-        //factor+=0.00011;
-      };
-
-  //hideMarkersBeforeExpanded();
-  //for (var i = 0, marker; marker = markers[i]; i++) {
-      //marker.setPosition();
-      //showMarkers(marker);
-      //marker.setMap(this.map_);
-  //};
-  //make a cluster coord
-  console.log('this', this);
-  console.log('cluster center', this.cluster_.center_);
-  this.spiderListener(this.cluster_);
+  this.initMarkerArrays();
   this.init();
+  //generate events for markerClusterer
+  var that = this;
+  this.markerClusterer.zoomChangedCluster = function(){
+      console.log('zoom markeroverlap :D');
+      that.unspiderfy();
+  };
+  //this.markerClusterer.idleCLuster = function(){
+      //console.log('idle markeroverlap :D');
+  //};
 };
 
 
 MarkerOverlap.prototype.init = function(marker){
   var markers = this.cluster_.markers_;
-  //hide the clusterIcon
-  //this.clusterIcon_.hide();
+  for(var i = 0, marker;marker = markers[i]; i++){
+      this.addMarker(marker);
+  }
+  this.spiderListener(this.cluster_);
 };
 
 MarkerOverlap.prototype.initMarkerArrays = function(marker){
-    this.markerClusterer.expandedMarkers_ = [];
+    this.markers = [];
     this.markerListenerRefs = [];
 };
 
@@ -114,7 +76,8 @@ MarkerOverlap.prototype.addMarker = function(marker){
         return this;
     }
     marker._oms = true;
-    this.markerClusterer.expandedMarkers_.push(marker);
+    this.markers.push(marker);
+    return this;
 };
 //listen to spiderfy
 MarkerOverlap.prototype.spiderListener = function(cluster){
@@ -130,7 +93,7 @@ MarkerOverlap.prototype.spiderListener = function(cluster){
         var nearbyMarkerData = [];
         var nonNearbyMarkers = [];
         //reference to list of markers expendaded
-        var markers = cluster.markers_;
+        var markers = this.markers;
         console.log('markers', markers);
         //declare a variable for transform the position of pixels
         var markerPt = null;
@@ -153,10 +116,14 @@ MarkerOverlap.prototype.spiderListener = function(cluster){
             this.spiderfy(nearbyMarkerData);
         };
     }
+    //hide the clusterIcon
     this.clusterIcon_.hide();
 };
 
 MarkerOverlap.prototype.unspiderfy = function(markerNotToMove){
+    console.log('unspiderfy()');
+    console.log('this', this);
+    var listeners;
     if(markerNotToMove == null){
         markerNotToMove = null;
     }
@@ -166,32 +133,61 @@ MarkerOverlap.prototype.unspiderfy = function(markerNotToMove){
     this.unspiderfying = true;
     var unspiderfiedMarkers = [];
     var nonNearbyMarkers = [];
+    var markers = this.markers;
+    for(var i = 0; i < markers.length; i++){
+        var marker = markers[i];
+        console.log('marker', marker);
+        if(marker._omsData != null){
+            marker._omsData.leg.setMap(null);
+            if(marker !== markerNotToMove){
+                marker.setPosition(marker._omsData.usualPosition);
+            }
+            marker.setZIndex(null);
+            listeners = marker._omsData.hightlightListeners;
+            if(listeners != null){
+                this.GE.removeListener(listeners.highlight);
+                this.GE.removeListener(listeners.unhighlight);
+            }
+            delete marker['_omsData'];
+            unspiderfiedMarkers.push(marker);
+        } else {
+            nonNearbyMarkers.push(marker);
+        }
+    }
+    delete this.unspiderfying;
+    delete this.spiderfied;
+    this.trigger('unspiderfy', unspiderfiedMarkers, nonNearbyMarkers);
+    return this;
 };
 
 MarkerOverlap.prototype.spiderfy = function(markerData){
     var _this = this;
     this.spiderfying = true;
-    console.log('spiderfy esto--->', markerData.length);
-    var numMarkers = markerData.length,
-        getBodyPt = function(){
-            var result = [];
-            for(var i = 0; i < markerData.length; i++){
-                result.push(markerData[i].markerPoint);
-            }
-            return result;
-        },
-        collectionPointsNearby = getBodyPt(),
+    var numMarkers = markerData.length;
+
+    var getBodyPt = function(){
+        var result = [];
+        for(var i = 0; i < markerData.length; i++){
+            result.push(markerData[i].markerPoint);
+        }
+        return result;
+    };
+
+    var collectionPointsNearby = getBodyPt(),
         footPts,
         footLl,
         nearestMarkerDatum,
         highlightListenerFuncs,
         marker;
-        bodyPt = this.ptAverage(collectionPointsNearby);
-        if(numMarkers >= this.circleSpiralSwitchover){
-           footPts = this.generatePtsSpiral(numMarkers, bodyPt).reverse();
-        } else {
-           footPts = this.generatePtsCircle(numMarkers, bodyPt);
-        }
+
+    bodyPt = this.ptAverage(collectionPointsNearby);
+
+    if(numMarkers >= this.circleSpiralSwitchover){
+        footPts = this.generatePtsSpiral(numMarkers, bodyPt).reverse();
+    } else {
+        footPts = this.generatePtsCircle(numMarkers, bodyPt);
+    }
+
     var getSpiderfiedMarkers = function(){
         var _results = [],
             footPt;
@@ -213,20 +209,21 @@ MarkerOverlap.prototype.spiderfy = function(markerData){
                 usualPosition: marker.position,
                 leg: leg
             };
+            if(_this.legColors.highlighted[_this.map.mapTypeId] !== _this.legColors.usual[_this.map.mapTypeId]){
+                highlightListenerFuncs  = _this.makeHighlightListenerFuncs(marker);
+                marker._omsData.highlightListeners = {
+                    highlight: _this.GE.addListener(marker, 'mouseover', highlightListenerFuncs.highlight),
+                    highlight: _this.GE.addListener(marker, 'mouseout', highlightListenerFuncs.unhighlight)
+                };
+            }
+            marker.setMap(_this.map);
+            marker.setPosition(footLl);
+            marker.setZIndex(Math.round(this.spiderfiedZIndex + footPt.y));
+            _results.push(marker);
         };
-        if(_this.legColors.highlighted[_this.map.mapTypeId] !== _this.legColors.usual[_this.map.mapTypeId]){
-            highlightListenerFuncs  = _this.makeHighlightListenerFuncs(marker);
-            marker._omsData.highlightListeners = {
-                highlight: _this.GE.addListener(marker, 'mouseover', highlightListenerFuncs.highlight),
-                highlight: _this.GE.addListener(marker, 'mouseout', highlightListenerFuncs.unhighlight)
-            };
-        }
-        console.log('footLl', footLl);
-        marker.setPosition(footLl);
-        marker.setZIndex(Math.round(this.spiderfiedZIndex + footPt.y));
-        _results.push(marker);
         return _results;
     };
+
     spiderfiedMarkers = getSpiderfiedMarkers();
     delete this.spiderfying;
     this.spiderfied = true;
