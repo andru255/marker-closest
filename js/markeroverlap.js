@@ -67,16 +67,16 @@ MarkerOverlap.prototype.init = function(marker){
 };
 
 MarkerOverlap.prototype.initMarkerArrays = function(marker){
-    this.markers = [];
+    this.markersToOverlap = [];
     this.markerListenerRefs = [];
 };
 
 MarkerOverlap.prototype.addMarker = function(marker){
-    if(marker._oms != null){
-        return this;
-    }
+    //if(marker._oms != null){
+        //return this;
+    //}
     marker._oms = true;
-    this.markers.push(marker);
+    this.markersToOverlap.push(marker);
     return this;
 };
 //listen to spiderfy
@@ -93,7 +93,7 @@ MarkerOverlap.prototype.spiderListener = function(cluster){
         var nearbyMarkerData = [];
         var nonNearbyMarkers = [];
         //reference to list of markers expendaded
-        var markers = this.markers;
+        var markers = this.markersToOverlap;
         console.log('markers', markers);
         //declare a variable for transform the position of pixels
         var markerPt = null;
@@ -133,10 +133,9 @@ MarkerOverlap.prototype.unspiderfy = function(markerNotToMove){
     this.unspiderfying = true;
     var unspiderfiedMarkers = [];
     var nonNearbyMarkers = [];
-    var markers = this.markers;
+    var markers = this.markersToOverlap;
     for(var i = 0; i < markers.length; i++){
         var marker = markers[i];
-        console.log('marker', marker);
         if(marker._omsData != null){
             marker._omsData.leg.setMap(null);
             if(marker !== markerNotToMove){
