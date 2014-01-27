@@ -45,30 +45,45 @@ function MarkerOverlap(cluster){
   this.markerClusterer = this.cluster_.getMarkerClusterer();
   this.map = this.cluster_.map_;
   this.initMarkerArrays();
+  this.unspiderfyClusters();
   this.init();
+  console.log('markersToOverlap', this);
+  console.log('markersToOverlap.length', this.markersToOverlap.length);
   //generate events for markerClusterer
   var that = this;
   this.markerClusterer.zoomChangedCluster = function(){
       console.log('zoom markeroverlap :D');
       that.unspiderfy();
   };
-  //this.markerClusterer.idleCLuster = function(){
-      //console.log('idle markeroverlap :D');
-  //};
+  this.markerClusterer.idleCluster = function(){
+      console.log('idle markeroverlap :D');
+      //that.unspiderfy();
+  };
 };
 
 
 MarkerOverlap.prototype.init = function(marker){
-  var markers = this.cluster_.markers_;
-  for(var i = 0, marker;marker = markers[i]; i++){
-      this.addMarker(marker);
-  }
-  this.spiderListener(this.cluster_);
+    var markers = this.cluster_.markers_;
+    for(var i = 0, marker;marker = markers[i]; i++){
+        this.addMarker(marker);
+    }
+    this.spiderListener(this.cluster_);
 };
 
 MarkerOverlap.prototype.initMarkerArrays = function(marker){
     this.markersToOverlap = [];
     this.markerListenerRefs = [];
+};
+
+MarkerOverlap.prototype.unspiderfyClusters = function(){
+    var clusters = this.markerClusterer.clusters_;
+    for(var i =0,cluster; cluster = clusters[i]; i++){
+        if(cluster._omsExpanded){
+            this.spiderfied = true;
+            this.unspiderfy();
+            cluster.clusterIcon_.show();
+        }
+    }
 };
 
 MarkerOverlap.prototype.addMarker = function(marker){
@@ -79,22 +94,24 @@ MarkerOverlap.prototype.addMarker = function(marker){
     this.markersToOverlap.push(marker);
     return this;
 };
+
 //listen to spiderfy
 MarkerOverlap.prototype.spiderListener = function(cluster){
     var markerSpiderfied = cluster._omsData != null;
-    if(!(markerSpiderfied && this.keepSpiderfied)){
+    console.log('this.markersToOverlap', this.markersToOverlap);
+
+    if(this.keepSpiderfied){
+        this.spiderfied = true;
         this.unspiderfy();
     }
-
     //don't spiderfy in Street View or GE Plugin!
     if(markerSpiderfied || this.map.getStreetView().getVisible() || this.map.getMapTypeId() === 'GoogleEarthAPI'){
-
+        //this.trigger('click', cluster, event);
     } else {
         var nearbyMarkerData = [];
         var nonNearbyMarkers = [];
         //reference to list of markers expendaded
         var markers = this.markersToOverlap;
-        console.log('markers', markers);
         //declare a variable for transform the position of pixels
         var markerPt = null;
         for (var i = 0, marker; marker = markers[i]; i++) {
@@ -114,15 +131,15 @@ MarkerOverlap.prototype.spiderListener = function(cluster){
 
         } else {
             this.spiderfy(nearbyMarkerData);
+            cluster._omsExpanded = true;
+            //hide the clusterIcon
+            this.clusterIcon_.hide();
         };
     }
-    //hide the clusterIcon
-    this.clusterIcon_.hide();
 };
 
 MarkerOverlap.prototype.unspiderfy = function(markerNotToMove){
     console.log('unspiderfy()');
-    console.log('this', this);
     var listeners;
     if(markerNotToMove == null){
         markerNotToMove = null;
@@ -147,6 +164,8 @@ MarkerOverlap.prototype.unspiderfy = function(markerNotToMove){
                 this.GE.removeListener(listeners.highlight);
                 this.GE.removeListener(listeners.unhighlight);
             }
+            marker.isAdded = false;
+            marker.setMap(null);
             delete marker['_omsData'];
             unspiderfiedMarkers.push(marker);
         } else {

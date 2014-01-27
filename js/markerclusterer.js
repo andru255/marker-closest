@@ -57,11 +57,6 @@ function MarkerClusterer(map, opt_markers, opt_options) {
   this.markers_ = [];
 
   /**
-   * @type {Array.<google.maps.Marker>}
-   * @private
-   */
-  this.expandedMarkers_ = [];
-  /**
    *  @type {Array.<Cluster>}
    */
   this.clusters_ = [];
@@ -164,7 +159,7 @@ function MarkerClusterer(map, opt_markers, opt_options) {
 
   google.maps.event.addListener(this.map_, 'idle', function() {
     that.redraw();
-    that.idleCLuster && that.idleCLuster.apply(this);
+    that.idleCluster && that.idleCluster.apply(this);
   });
 
   // Finally, add the markers
@@ -677,13 +672,6 @@ MarkerClusterer.prototype.resetViewport = function(opt_hide) {
     if (opt_hide) {
       marker.setMap(null);
     }
-  }
-  //delete selected cluster with markers very closest in the min zoom
-  if(this.expandedMarkers_.length){
-      for (var i = 0, expandedMarker; expandedMarker = this.expandedMarkers_[i]; i++) {
-          expandedMarker.point.setMap(null);
-      }
-      this.expandedMarkers_ = [];
   }
 
   this.clusters_ = [];

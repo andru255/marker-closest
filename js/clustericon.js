@@ -50,12 +50,7 @@ ClusterIcon.prototype.triggerClusterClick = function() {
       // si ha llegado a un máximo y sigue agrupado
       // es porque los markers son demasiado cercanos entre si
       if (zoom === mzMap || ( mz && zoom > mz )) {
-          //console.log('expandir!');
-          //console.log('this', this);
-          //return;
-          //this.OverlappingMarkerSpiderfier();
           var markerOverlap = new MarkerOverlap(this.cluster_);
-          //google.maps.event.trigger(markerClusterer, 'clusterclickLastZoom', this);
       }else {
           this.map_.fitBounds(this.cluster_.getBounds());
       }

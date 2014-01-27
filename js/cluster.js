@@ -18,7 +18,7 @@ function Cluster(markerClusterer) {
   this.bounds_ = null;
   this.clusterIcon_ = new ClusterIcon(this, markerClusterer.getStyles(),
       markerClusterer.getGridSize());
-}
+};
 
 /**
  * Determins if a marker is already added to the cluster.
