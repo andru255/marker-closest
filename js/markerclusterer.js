@@ -57,6 +57,12 @@ function MarkerClusterer(map, opt_markers, opt_options) {
   this.markers_ = [];
 
   /**
+   * @type {Array.<google.maps.Marker>}
+   * @private
+   */
+  this.overlapMarkers_ = [];
+
+  /**
    *  @type {Array.<Cluster>}
    */
   this.clusters_ = [];

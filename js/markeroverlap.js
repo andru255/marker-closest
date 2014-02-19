@@ -92,6 +92,7 @@ MarkerOverlap.prototype.addMarker = function(marker){
     //}
     marker._oms = true;
     this.markersToOverlap.push(marker);
+    this.markerClusterer.overlapMarkers_.push(marker);
     return this;
 };
 
@@ -99,6 +100,8 @@ MarkerOverlap.prototype.addMarker = function(marker){
 MarkerOverlap.prototype.spiderListener = function(cluster){
     var markerSpiderfied = cluster._omsData != null;
     console.log('this.markersToOverlap', this.markersToOverlap);
+    console.log('overlapMarkers_', this.markerClusterer.overlapMarkers_);
+    console.log('overlapMarkers_.length', this.markerClusterer.overlapMarkers_.length);
 
     if(this.keepSpiderfied){
         this.spiderfied = true;
@@ -150,7 +153,9 @@ MarkerOverlap.prototype.unspiderfy = function(markerNotToMove){
     this.unspiderfying = true;
     var unspiderfiedMarkers = [];
     var nonNearbyMarkers = [];
-    var markers = this.markersToOverlap;
+    var markers = this.markerClusterer.overlapMarkers_;
+    console.log('markers', markers);
+    console.log('markers', markers.length);
     for(var i = 0; i < markers.length; i++){
         var marker = markers[i];
         if(marker._omsData != null){
@@ -174,6 +179,7 @@ MarkerOverlap.prototype.unspiderfy = function(markerNotToMove){
     }
     delete this.unspiderfying;
     delete this.spiderfied;
+    this.markerClusterer.overlapMarkers_ = [];
     this.trigger('unspiderfy', unspiderfiedMarkers, nonNearbyMarkers);
     return this;
 };

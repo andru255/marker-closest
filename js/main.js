@@ -1,8 +1,8 @@
 function initialize() {
-    var center = new google.maps.LatLng(-37.79, 175.27);
+    var center = new google.maps.LatLng(-37.813823493325906, 175.27205224722138);
 
     var map = new google.maps.Map(document.getElementById('map'), {
-                    zoom: 3,
+                    zoom: 15,
                     center: center,
                     mapTypeId: google.maps.MapTypeId.ROADMAP,
                     maxZoom: 18
