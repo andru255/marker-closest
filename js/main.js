@@ -1,4 +1,8 @@
 function initialize() {
+
+    var progress = document.getElementById('progress');
+    var progressBar = document.getElementById('progress-bar');
+
     var center = new google.maps.LatLng(-37.813823493325906, 175.27205224722138);
 
     var map = new google.maps.Map(document.getElementById('map'), {
@@ -19,13 +23,33 @@ function initialize() {
             position: latLng
         });
         markers.push(marker);
+        marker.setMap(map);
         //oms.addMarker(marker);
     }
+
+    var updateProgressBar = function(processed, total, elapsed){
+
+        //console.log('processed', processed);
+        //console.log('total', total);
+        //console.log('elapsed', elapsed);
+
+        if(elapsed > 1000) {
+            progress.style.display = 'block';
+            progressBar.style.width = Math.round(processed/total*100) + '%';
+        }
+
+        if(processed === total){
+            //all markers is processed - hide the progressbar
+            progress.style.display = 'none';
+        }
+    };
+
     var markerCluster = new MarkerClusterer(map, markers, {
             //The grid size of a cluster in pixels. The grid is a square. The default value is 60.
             gridSize: 90,
             //The maximum zoom level at which clustering is enabled or null if clustering is to be enabled at all zoom levels. The default value is null.
-            maxZoom: 18
+            maxZoom: 18,
+            chunkProgress:updateProgressBar
     });
 
     //cuando ejecute el ultimo zoom y existan markers muy cercanos unos a otros

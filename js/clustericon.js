@@ -49,11 +49,11 @@ ClusterIcon.prototype.triggerClusterClick = function() {
       // Zoom into the cluster.
       // si ha llegado a un máximo y sigue agrupado
       // es porque los markers son demasiado cercanos entre si
-      if (zoom === mzMap || ( mz && zoom > mz )) {
-          var markerOverlap = new MarkerOverlap(this.cluster_);
-      }else {
+      //if (zoom === mzMap || ( mz && zoom > mz )) {
+          //var markerOverlap = new MarkerOverlap(this.cluster_);
+      //}else {
           this.map_.fitBounds(this.cluster_.getBounds());
-      }
+      //}
   }
 };
 

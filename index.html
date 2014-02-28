@@ -27,6 +27,13 @@ body {
     width: 600px;
     height: 400px;
 }
+#progress {
+    border: 1px solid #CCC;
+    min-height: 100px;
+}
+#progress-bar {
+    background-color: blue;
+}
 </style>
 <script src="http://maps.google.com/maps/api/js?sensor=false"></script>
 <script type="text/javascript" src="js/log.js"></script>
@@ -34,7 +41,7 @@ body {
 <script type="text/javascript" src="js/cluster.js"></script>
 <script type="text/javascript" src="js/clustericon.js"></script>
 <script type="text/javascript" src="js/markeroverlap.js"></script>
-<script type="text/javascript" src="js/oms.js"></script>
+<!--<script type="text/javascript" src="js/oms.js"></script>-->
 <script type="text/javascript" src="js/realworld.50000.1.js"></script>
 <script type="text/javascript" src="js/main.js"></script>
 </head>
@@ -42,6 +49,7 @@ body {
 <h3>A simple example of MarkerClusterer</h3>
 <p>
 </p>
+<div id="progress"><div id="progress-bar"></div></div>
 <div id="map-container"><div id="map"></div></div>
 </body>
 </html>
