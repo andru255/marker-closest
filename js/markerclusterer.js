@@ -57,13 +57,18 @@ function MarkerClusterer(map, opt_markers, opts){
     //markers
     this.opt_markers = opt_markers;
     //override default properties
-    this.settings = this.extend(defaults, opts);
+    this.settings = this.merge(defaults, opts);
+
+    // Explicity call setMap on this overlay
+    // because need call the inherits events of google.maps.Overlayview
+    this.setMap(map);
+
     //init the library
     this.initialize();
 };
 
 /**
- * Extends a objects prototype by anothers.
+ * Extends a objects LITERALS by anothers.
  *
  * @param {Object} obj1 The object to be extended.
  * @param {Object} obj2 The object to extend with.
@@ -72,12 +77,28 @@ function MarkerClusterer(map, opt_markers, opts){
  */
 MarkerClusterer.prototype.extend = function(obj1, obj2) {
   return (function(object) {
+    for(var ProtoProperty in object.prototype){
+      this.prototype[ProtoProperty] = object.prototype[ProtoProperty];
+    };
+    return this;
+  }).apply(obj1, [obj2]);
+};
+
+/**
+ * Extends a objects PROTOTYPE by anothers.
+ *
+ * @param {Object} obj1 The object to be extended.
+ * @param {Object} obj2 The object to extend with.
+ * @return {Object} The new extended object.
+ * @ignore
+ */
+MarkerClusterer.prototype.merge = function(obj1, obj2) {
+  return (function(object) {
+
     for (var property in object) {
       this[property] = object[property];
     };
-    for(var ProtoProperty in object.prototype){
-      this.prototype[ProtoProperty] = object.prototype[property];
-    };
+
     return this;
   }).apply(obj1, [obj2]);
 };
