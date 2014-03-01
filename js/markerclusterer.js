@@ -3,42 +3,55 @@ function MarkerClusterer(map, opt_markers, opts){
     this.GM = google.maps;
     this.GE = this.GM.event;
     this.map_ = map;
+
     //extend to google.maps.OverlayView()
     this.extend(MarkerClusterer, this.GM.OverlayView);
+
     //defaults
     var defaults = {
         maxClusterRadio: 80,
+        minClusterSize: 2,
         spiderfyOnMaxZoom: true,
         showCoverageOnHover: true,
         zoomToBoundsOnClick: true,
         singleMarkerMode: false,
         disableClusteringAtZoom: null,
 
-        //for performance
+        // Setting this to false prevents the removal of any clusters outside of the viewpoint, which
+        // is the default behaviour for performance reasons.
         removeOutsideVisibleBounds: true,
-        //
+        //Whether to animate adding markers after adding the MarkerClusterGroup to the map
+        // If you are adding individual markers set to true, if adding bulk markers leave false for massive performance gains.
         animateAddingMarkers: false,
-        //
+        //Increase to increase the distance away that spiderfied markers appear from the center
         spiderfyDistanceMultiplier: 1,
-        //chunk
+        // When bulk adding layers, adds markers in chunks.
+        // Means addLayers may not add all the layers in the call,
+        // others will be loaded during setTimeouts
         chunkedLoading: false,
         chunkInterval:200,
         chunkDelay: 50,
         chunkProgress: null,
         //
-        polygonOptions:{}
+        polygonOptions:{},
+        //
+        isAverageCenter: false,
+        styles_: ''
     };
+
     /**
      * @type {Array.<google.maps.Marker>}
      * @private
      */
     this.markers_ = [];
+
     /**
      * @type {Array.<Cluster>}
      */
     this.clusters_ = [];
 
     this.sizes = [53, 56, 66, 78, 90];
+
     /**
      * @private
      */
@@ -48,11 +61,18 @@ function MarkerClusterer(map, opt_markers, opts){
     this._needsClustering = [];
     this._needsRemoving = [];
     this._currentShownBounds = null;
+
     /**
      * @type {boolean}
      * @private
      */
     this.ready_ = false;
+
+    /**
+    * @type {boolean}
+    * @private
+    */
+    this.averageCenter_ = false;
 
     //markers
     this.opt_markers = opt_markers;
@@ -68,7 +88,7 @@ function MarkerClusterer(map, opt_markers, opts){
 };
 
 /**
- * Extends a objects LITERALS by anothers.
+ * Extends a objects PROTOTYPE by anothers.
  *
  * @param {Object} obj1 The object to be extended.
  * @param {Object} obj2 The object to extend with.
@@ -85,7 +105,7 @@ MarkerClusterer.prototype.extend = function(obj1, obj2) {
 };
 
 /**
- * Extends a objects PROTOTYPE by anothers.
+ * Merge a objects LITERALS by anothers.
  *
  * @param {Object} obj1 The object to be extended.
  * @param {Object} obj2 The object to extend with.
@@ -105,12 +125,19 @@ MarkerClusterer.prototype.merge = function(obj1, obj2) {
 
 /**
  * Implementaion of the interface method.
+ * its REQUIRED when the Markerclusterer is extended of google.maps.Overlayview
  * @ignore
  */
 MarkerClusterer.prototype.onAdd = function() {
-  console.log('ready!');
   this.setReady_(true);
 };
+
+/**
+ * Implementaion of the interface method.
+ * its REQUIRED when the Markerclusterer is extended of google.maps.Overlayview
+ * @ignore
+ */
+MarkerClusterer.prototype.draw = function() {};
 
 MarkerClusterer.prototype.bindEvents = function(){
     var that = this;
@@ -191,6 +218,7 @@ MarkerClusterer.prototype.addMarkers = function(markers){
 
 MarkerClusterer.prototype.pushMarkerTo_ = function(marker){
     marker.isAdded = false;
+    this.markers_.push(marker);
     this.createClusters_();
 };
 
@@ -235,6 +263,7 @@ MarkerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
   var d = R * c;
   return d;
 };
+
 /**
  * Add a marker to a cluster, or creates a new cluster.
  *
@@ -270,12 +299,14 @@ MarkerClusterer.prototype.addToClosestCluster_ = function(marker){
 MarkerClusterer.prototype.getExtendedBounds = function(bounds){
     var projection = this.getProjection();
 
+    // Turn the bounds into latlng.
     var tr = new this.GM.LatLng(bounds.getNorthEast().lat(),
         bounds.getNorthEast().lng());
 
-    var b1 = new this.GM.LatLng(bounds.getSouthWest().lat(),
+    var bl = new this.GM.LatLng(bounds.getSouthWest().lat(),
         bounds.getSouthWest().lng());
 
+    // Convert the points to pixels and the extend out by the grid size.
     var trPix = projection.fromLatLngToDivPixel(tr);
     trPix.x += this.settings.maxClusterRadio;
     trPix.y -= this.settings.maxClusterRadio;
@@ -284,9 +315,11 @@ MarkerClusterer.prototype.getExtendedBounds = function(bounds){
     blPix.x -= this.settings.maxClusterRadio;
     blPix.y += this.settings.maxClusterRadio;
 
-    var ne = projection.fromLatLngToDivPixel(trPix);
-    var sw = projection.fromLatLngToDivPixel(blPix);
+    // Convert the pixel points back to LatLng
+    var ne = projection.fromDivPixelToLatLng(trPix);
+    var sw = projection.fromDivPixelToLatLng(blPix);
 
+    // Extend the bounds to contain the new bounds.
     bounds.extend(ne);
     bounds.extend(sw);
 
@@ -306,15 +339,69 @@ MarkerClusterer.prototype.createClusters_ = function(){
     var mapSouthWest = this.map_.getBounds().getSouthWest(),
         mapNorthEast = this.map_.getBounds().getNorthEast(),
         mapBounds = new this.GM.LatLngBounds(mapSouthWest, mapNorthEast),
-        bounds = new this.getExtendedBounds(mapBounds);
+        bounds = this.getExtendedBounds(mapBounds);
 
     for(var i = 0, marker; marker = this.markers_[i]; i++){
+        log('marker', marker);
         if(!marker.isAdded && this.isMarkerInBounds_(marker, bounds)){
-            console.log('marker', marker);
             this.addToClosestCluster_(marker);
         }
     }
 };
+
+/**
+ * Returns the size of the grid.
+ *
+ * @return {number} The grid size.
+ */
+MarkerClusterer.prototype.getGridSize = function() {
+  return this.gridSize_;
+};
+
+/**
+ * Returns the min cluster size.
+ *
+ * @return {number} The grid size.
+ */
+MarkerClusterer.prototype.getMinClusterSize = function() {
+  return this.settings.minClusterSize;
+};
+
+/**
+ * Sets the min cluster size.
+ *
+ * @param {number} size The grid size.
+ */
+MarkerClusterer.prototype.setMinClusterSize = function(size) {
+  this.settings.minClusterSize = size;
+};
+
+/**
+ * Whether average center is set.
+ *
+ * @return {boolean} True if averageCenter_ is set.
+ */
+MarkerClusterer.prototype.isAverageCenter = function() {
+  return this.settings.averageCenter;
+};
+
+/**
+ *  Gets the styles.
+ *
+ *  @return {Object} The styles object.
+ */
+MarkerClusterer.prototype.getStyles = function() {
+  return this.settings.styles_;
+}
+
+/**
+ *  Gets the max zoom for the clusterer.
+ *
+ *  @return {number} The max zoom level.
+ */
+MarkerClusterer.prototype.getMaxZoom = function() {
+  return this.maxZoom_;
+};;
 
 MarkerClusterer.prototype.initialize = function(){
     this.bindEvents();
