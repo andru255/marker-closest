@@ -9,19 +9,21 @@ function MarkerClusterer(map, opt_markers, opts){
 
     //defaults
     var defaults = {
+        //cluster properties
         maxClusterRadio: 80,
         minClusterSize: 2,
         spiderfyOnMaxZoom: true,
         showCoverageOnHover: true,
         zoomToBoundsOnClick: true,
+        zoomOnClick: true,
         singleMarkerMode: false,
         disableClusteringAtZoom: null,
-
-        // Setting this to false prevents the removal of any clusters outside of the viewpoint, which
-        // is the default behaviour for performance reasons.
+        // Setting this to false prevents the removal of any clusters outside
+        // of the viewpoint, which is the default behaviour for performance reasons.
         removeOutsideVisibleBounds: true,
         //Whether to animate adding markers after adding the MarkerClusterGroup to the map
-        // If you are adding individual markers set to true, if adding bulk markers leave false for massive performance gains.
+        // If you are adding individual markers set to true,
+        // if adding bulk markers leave false for massive performance gains.
         animateAddingMarkers: false,
         //Increase to increase the distance away that spiderfied markers appear from the center
         spiderfyDistanceMultiplier: 1,
@@ -36,7 +38,10 @@ function MarkerClusterer(map, opt_markers, opts){
         polygonOptions:{},
         //
         isAverageCenter: false,
-        styles_: ''
+        styles_: [],
+        imagePath: 'http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerclusterer/' +
+                   'images/m',
+        imageExtension: 'png'
     };
 
     /**
@@ -78,13 +83,8 @@ function MarkerClusterer(map, opt_markers, opts){
     this.opt_markers = opt_markers;
     //override default properties
     this.settings = this.merge(defaults, opts);
-
-    // Explicity call setMap on this overlay
-    // because need call the inherits events of google.maps.Overlayview
-    this.setMap(map);
-
-    //init the library
-    this.initialize();
+    //initialize
+    //this.initialize();
 };
 
 /**
@@ -129,7 +129,32 @@ MarkerClusterer.prototype.merge = function(obj1, obj2) {
  * @ignore
  */
 MarkerClusterer.prototype.onAdd = function() {
+  log('onAdd!');
   this.setReady_(true);
+  //storage range of zoom
+  this.minZoom = this.map_.minZoom || 0;
+  this.maxZoom = this.map_.mapTypes[this.map_.getMapTypeId()].maxZoom;
+  this.initialize();
+};
+
+/**
+ * Sets up the styles object.
+ *
+ * @private
+ */
+MarkerClusterer.prototype.setupStyles = function() {
+  var that = this.settings;
+  if (that.styles_.length) {
+    return;
+  }
+
+  for (var i = 0, size; size = this.sizes[i]; i++) {
+    that.styles_.push({
+      url: that.imagePath + (i + 1) + '.' + that.imageExtension,
+      height: size,
+      width: size
+    });
+  }
 };
 
 /**
@@ -141,11 +166,16 @@ MarkerClusterer.prototype.draw = function() {};
 
 MarkerClusterer.prototype.bindEvents = function(){
     var that = this;
+    //load the map
 
     //when change the zoom of map
     this.GE.addListener(this.map_, 'zoom_changed', function(){
+
+        //get the current zoom
         var zoom = that.map_.getZoom(),
-            minZoom = that.map_.minZoom || 0,
+            //set the minZoom or 0 to minZoom variable
+            minZoom = that.settings.minZoom || 0,
+            //calculate the maxZoom
             maxZoom = Math.min(that.map_.maxZoom || 100,
                                that.map_.mapTypes[that.map_.getMapTypeId()].maxZoom);
 
@@ -154,11 +184,15 @@ MarkerClusterer.prototype.bindEvents = function(){
         if(that.prevZoom_ != zoom) {
             that.prevzoom_ = zoom;
         }
+
         that.zoomChangedCluster && that.zoomChangedCluster.apply(this);
     });
 
     //when is idle
     this.GE.addListener(this.map_, 'idle', function(){
+        if(!that.complete){
+            that.complete = true;
+        }
         that.idleCluster && that.idleCluster.apply(this);
     });
 
@@ -192,7 +226,7 @@ MarkerClusterer.prototype.addMarkers = function(markers){
                 }
 
                 marker = markers[offset];
-                that.pushMarkerTo_(marker);
+                that.pushMarkerTo_(marker, that.maxZoom);
             }
 
             if(chunkProgress){
@@ -226,6 +260,33 @@ MarkerClusterer.prototype.addMarker = function(marker){
     this.pushMarkerTo_(marker);
 };
 
+MarkerClusterer.prototype._generateInitialClusters = function(marker){
+    var maxZoom = this.maxZoom,
+        radio = this.settings.maxClusterRadio,
+        radioFn = radio;
+
+    log('maxZoom', maxZoom);
+
+    if(typeof radio !== "function"){
+        radioFn = function(){ return radio;};
+    }
+
+    if(this.settings.disableClusteringAtZoom){
+        maxZoom = this.settings.disableClusteringAtZoom - 1;
+    }
+
+    this._gridClusters = {};
+    this._gridUnClustered = {};
+
+    //setup DistanceGrids for each zoom
+    for(var zoom = maxZoom; zoom >=0; zoom--){
+        this._gridClusters[zoom] = new DistanceGrid(radioFn(zoom));
+        this._gridUnClustered[zoom] = new DistanceGrid(radioFn(zoom));
+    }
+
+    log('this._gridClusters[zoom]', this._gridClusters[zoom]);
+    log('this._gridUnClustered[zoom]', this._gridUnClustered[zoom]);
+};
 /**
  * Sets the clusterer's ready state.
  *
@@ -287,6 +348,7 @@ MarkerClusterer.prototype.addToClosestCluster_ = function(marker){
     }
 
     if(clusterAddTo && clusterAddTo.isMarkerInClusterBounds(marker)){
+        log('adding marker', marker);
         clusterAddTo.addMarker(marker);
     } else {
         var cluster = new Cluster(this);
@@ -325,6 +387,7 @@ MarkerClusterer.prototype.getExtendedBounds = function(bounds){
 
     return bounds;
 };
+
 /*
  * */
 MarkerClusterer.prototype.isMarkerInBounds_ = function(marker, bounds){
@@ -341,8 +404,10 @@ MarkerClusterer.prototype.createClusters_ = function(){
         mapBounds = new this.GM.LatLngBounds(mapSouthWest, mapNorthEast),
         bounds = this.getExtendedBounds(mapBounds);
 
+    log('bounds', bounds);
+
+    //works only with the bounds of the viewport
     for(var i = 0, marker; marker = this.markers_[i]; i++){
-        log('marker', marker);
         if(!marker.isAdded && this.isMarkerInBounds_(marker, bounds)){
             this.addToClosestCluster_(marker);
         }
@@ -392,7 +457,16 @@ MarkerClusterer.prototype.isAverageCenter = function() {
  */
 MarkerClusterer.prototype.getStyles = function() {
   return this.settings.styles_;
-}
+};
+
+/**
+ * Whether zoom on click is set.
+ *
+ * @return {boolean} True if zoomOnClick_ is set.
+ */
+MarkerClusterer.prototype.isZoomOnClick = function() {
+  return this.settings.zoomOnClick;
+};
 
 /**
  *  Gets the max zoom for the clusterer.
@@ -401,9 +475,20 @@ MarkerClusterer.prototype.getStyles = function() {
  */
 MarkerClusterer.prototype.getMaxZoom = function() {
   return this.maxZoom_;
-};;
+};
 
 MarkerClusterer.prototype.initialize = function(){
+    log('initialize!');
+    //setup the styles
+    this.setupStyles();
+    // Explicity call setMap on this overlay
+    // because need call the inherits events of google.maps.Overlayview
+    this.setMap(map);
+
+    if (!this._gridClusters) {
+        this._generateInitialClusters();
+    }
+    //bind the events on the map
     this.bindEvents();
 };
 

@@ -46,6 +46,7 @@ ClusterIcon.prototype.triggerClusterClick = function() {
   google.maps.event.trigger(markerClusterer, 'clusterclick', this.cluster_);
 
   if (markerClusterer.isZoomOnClick()) {
+      console.log('zoom');
       // Zoom into the cluster.
       // si ha llegado a un máximo y sigue agrupado
       // es porque los markers son demasiado cercanos entre si
