@@ -45,7 +45,7 @@ DistanceGrid.prototype = {
 
         delete this._objPoint[this.stamp(obj)];
 
-        for(i = 0; len = cell.length; i < len; i++){
+        for(i = 0,len = cell.length; i < len; i++){
             if(cell[i] === obj){
                 cell.splice(i, 1);
                 if(len === 1) {
@@ -66,7 +66,7 @@ DistanceGrid.prototype = {
             for(j in row){
                 cell = row[j];
 
-                for(k = 0; len = cell.length; k <len; k++){
+                for(k = 0,len = cell.length; k <len; k++){
                     removed = fn.call(ctx, cell[k]);
                     if(removed){
                         k--;
@@ -91,7 +91,7 @@ DistanceGrid.prototype = {
                 for(j = x - 1; j <= x + 1;j++){
                     cell = row[j];
                     if(cell){
-                        for(k = 0; len = cell.length; k < len; k++){
+                        for(k = 0,len = cell.length; k < len; k++){
                             obj = cell[k];
                             dist = this._sqDist(objPoint[this.stamp(obj)], point);
                             if(dist < closestDistSq){
