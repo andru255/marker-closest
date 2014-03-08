@@ -71,7 +71,7 @@ function MarkerClusterer(map, opt_markers, opts){
      * @type {boolean}
      * @private
      */
-    this.ready_ = false;
+    this.load_ = false;
 
     /**
     * @type {boolean}
@@ -134,8 +134,12 @@ MarkerClusterer.prototype.merge = function(obj1, obj2) {
  * @ignore
  */
 MarkerClusterer.prototype.onAdd = function() {
-  this.setReady_(true);
-  log('onAdd');
+  this._onLoad(true, function(that){
+     var opt_markers = that.opt_markers;
+     if (opt_markers && (opt_markers.length || Object.keys(opt_markers).length)) {
+        this.addMarkers(opt_markers, false);
+     }
+  });
 };
 
 /**
@@ -258,6 +262,29 @@ MarkerClusterer.prototype.pushMarkerTo_ = function(marker){
     this.createClusters_();
 };
 
+/**
+ * Creates the clusters.
+ *
+ * @private
+ */
+MarkerClusterer.prototype.createClusters_ = function() {
+  if (!this.load_) {
+    return;
+  }
+
+  // Get our current map view bounds.
+  // Create a new bounds object so we don't affect the map.
+  var mapBounds = new google.maps.LatLngBounds(this.map_.getBounds().getSouthWest(),
+      this.map_.getBounds().getNorthEast());
+  var bounds = this.getExtendedBounds(mapBounds);
+
+  for (var i = 0, marker; marker = this.markers_[i]; i++) {
+    if (!marker.isAdded && this.isMarkerInBounds_(marker, bounds)) {
+      this.addToClosestCluster_(marker);
+    }
+  }
+};
+
 MarkerClusterer.prototype.addMarker = function(marker){
     this.pushMarkerTo_(marker);
 };
@@ -286,30 +313,18 @@ MarkerClusterer.prototype._generateInitialClusters = function(marker){
         this._gridUnClustered[zoom] = new DistanceGrid(radioFn(zoom));
     }
 
-    log('this._gridClusters[zoom]', this._gridClusters);
-    log('this._gridUnClustered[zoom]', this._gridUnClustered);
+    this._topClusterer = new Cluster(this, -1);
 };
 /**
- * Sets the clusterer's ready state.
+ * Sets the clusterer's state loaded.
  *
- * @param {boolean} ready The state.
+ * @param {boolean} state The state.
  * @private
  */
-MarkerClusterer.prototype.setReady_ = function(ready) {
-  if (!this.ready_) {
-    this.ready_ = ready;
-    this.createClusters_();
-    //storage range of zoom
-    this.minZoom = this.map_.minZoom || 0;
-    this.maxZoom = this.map_.mapTypes[this.map_.getMapTypeId()].maxZoom;
-    //setup the styles
-    if (!this._gridClusters) {
-        this._generateInitialClusters();
-    };
-    //add the markers
-    if(this.opt_markers && ( this.opt_markers || Object.keys(this.opt_markers).length )){
-        this.addMarkers(this.opt_markers);
-    }
+MarkerClusterer.prototype._onLoad = function(state, fn) {
+  if (!this.load_) {
+    this.load_ = state;
+    fn && fn.apply(this,[this]);
   }
 };
 
@@ -344,33 +359,45 @@ MarkerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
  * @param {google.maps.Marker} marker The marker to add.
  * @private
  */
+//MarkerClusterer.prototype.addToClosestCluster_ = function(marker){
+    //log('addToClosestCluster_!');
+    //var distance = 40000;
+    //var clusterAddTo = null;
+    //var pos = marker.getPosition();
+
+    //for(var i = 0, cluster; cluster = this.clusters_[i]; i++){
+        //var center = cluster.getCenter();
+        //if(center){
+            //var d = this.distanceBetweenPoints_(center, marker.getPosition());
+            //if(d < distance){
+                //distance = d;
+                //clusterAddTo = cluster;
+            //}
+        //}
+    //}
+
+    //if(clusterAddTo && clusterAddTo.isMarkerInClusterBounds(marker)){
+        //log('adding marker', marker);
+        //clusterAddTo.addMarker(marker);
+    //} else {
+        //var cluster = new Cluster(this);
+        //cluster.addMarker(marker);
+        //this.clusters_.push(cluster);
+        //console.log('this.clusters_', this.clusters_);
+    //}
+//};
+
 MarkerClusterer.prototype.addToClosestCluster_ = function(marker){
-    var distance = 40000;
-    var clusterAddTo = null;
-    var pos = marker.getPosition();
+    var gridClusters = this._gridClusters,
+        gridUnclustered = this._gridUnClustered,
+        projection = this.getProjection(),
+        markerPoint, z;
 
-    for(var i = 0, cluster; cluster = this.clusters_[i]; i++){
-        var center = cluster.getCenter();
-        if(center){
-            var d = this.distanceBetweenPoints_(center, marker.getPosition());
-            if(d < distance){
-                distance = d;
-                clusterAddTo = cluster;
-            }
-        }
+    //find the lowest zoom level to slot this one in
+    for(;zoom >=0; zoom--){
+        markerPoint = projection.fromLatLngToDivPixel(marker.getPosition());
     }
-
-    if(clusterAddTo && clusterAddTo.isMarkerInClusterBounds(marker)){
-        log('adding marker', marker);
-        clusterAddTo.addMarker(marker);
-    } else {
-        var cluster = new Cluster(this);
-        cluster.addMarker(marker);
-        this.clusters_.push(cluster);
-        console.log('this.clusters_', this.clusters_);
-    }
-};
-
+}
 MarkerClusterer.prototype.getExtendedBounds = function(bounds){
     var projection = this.getProjection();
 
@@ -407,9 +434,22 @@ MarkerClusterer.prototype.isMarkerInBounds_ = function(marker, bounds){
     return bounds.contains(marker.getPosition());
 };
 
-MarkerClusterer.prototype.createClusters_ = function(){
-    if(!this.ready_){
+MarkerClusterer.prototype.dispatchMarkers_ = function(){
+    //if not ready
+    if(!this.load_){
         return;
+    }
+
+    //storage range of zoom
+    //this.minZoom = this.map_.minZoom || 0;
+    //this.maxZoom = this.map_.mapTypes[this.map_.getMapTypeId()].maxZoom;
+    //setup the styles
+    //if (!this._gridClusters) {
+        //this._generateInitialClusters();
+    //};
+    //add the markers
+    if(this.opt_markers && ( this.opt_markers || Object.keys(this.opt_markers).length )){
+        this.addMarkers(this.opt_markers);
     }
     //get bounds of the map
     var mapSouthWest = this.map_.getBounds().getSouthWest(),

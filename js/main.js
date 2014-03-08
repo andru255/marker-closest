@@ -3,10 +3,10 @@ function initialize() {
     var progress = document.getElementById('progress');
     var progressBar = document.getElementById('progress-bar');
 
-    var center = new google.maps.LatLng(-37.813823493325906, 175.27205224722138);
+    var center = new google.maps.LatLng(-37.82, 175.24);
 
     var map = new google.maps.Map(document.getElementById('map'), {
-                    zoom: 15,
+                    zoom: 13,
                     center: center,
                     mapTypeId: google.maps.MapTypeId.ROADMAP,
                     maxZoom: 18
@@ -45,8 +45,8 @@ function initialize() {
     };
 
     var markerCluster = new MarkerClusterer(map, markers, {
-            //The grid size of a cluster in pixels. The grid is a square. The default value is 60.
-            gridSize: 90,
+            //The grid size of a cluster in pixels. The grid is a square. The default value is 80.
+            maxClusterRadio: 85,
             //The maximum zoom level at which clustering is enabled or null if clustering is to be enabled at all zoom levels. The default value is null.
             maxZoom: 18,
             chunkProgress:updateProgressBar
