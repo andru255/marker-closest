@@ -46,7 +46,7 @@ function initialize() {
 
     var markerCluster = new MarkerClusterer(map, markers, {
             //The grid size of a cluster in pixels. The grid is a square. The default value is 80.
-            maxClusterRadio: 85,
+            maxClusterRadio: 80,
             //The maximum zoom level at which clustering is enabled or null if clustering is to be enabled at all zoom levels. The default value is null.
             maxZoom: 18,
             chunkProgress:updateProgressBar

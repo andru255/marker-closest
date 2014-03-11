@@ -135,10 +135,7 @@ MarkerClusterer.prototype.merge = function(obj1, obj2) {
  */
 MarkerClusterer.prototype.onAdd = function() {
   this._onLoad(true, function(that){
-     var opt_markers = that.opt_markers;
-     if (opt_markers && (opt_markers.length || Object.keys(opt_markers).length)) {
-        this.addMarkers(opt_markers, false);
-     }
+      that.dispatchMarkers_();
   });
 };
 
@@ -243,21 +240,32 @@ MarkerClusterer.prototype.addMarkers = function(markers){
 
     } else if (Object.keys(markers).length){
         for(var marker in markers){
-            this.pushMarkerTo_(markers[marker]);
+            this.pushMarkerTo_(markers[marker], that.maxZoom);
         }
     }
 };
 
-MarkerClusterer.prototype.pushMarkerTo_ = function(marker){
+/**
+ * Push the marker and behaviour with the map and clusters.
+ *
+ * @private
+ */
+MarkerClusterer.prototype.pushMarkerTo_ = function(marker, zoom){
     marker.isAdded = false;
     this.markers_.push(marker);
 
     var gridClusters = this._gridClusters,
         gridUnclustered = this._gridUnClustered,
-        markerPoint, z;
+        markerPoint, z, closest;
 
-    //log('gridClusters', gridClusters);
-    //log('gridUnclustered', gridUnclustered);
+    for(;zoom >=0; zoom--){
+        markerPoint = latlngToPoint( this.map_, marker.getPosition(), zoom);
+        closest = gridClusters[zoom].getNearObject(markerPoint);
+        log('marker.getPosition()', marker.getPosition().toString());
+        log('markerPoint', markerPoint.toString());
+        if(closest){
+        }
+    }
     //find the lowest zoom lovel to slot one in
     this.createClusters_();
 };
@@ -285,16 +293,19 @@ MarkerClusterer.prototype.createClusters_ = function() {
   }
 };
 
-MarkerClusterer.prototype.addMarker = function(marker){
-    this.pushMarkerTo_(marker);
-};
+/**
+ * Append a new single marker
+ *
+ * @private
+ */
+//MarkerClusterer.prototype.addMarker = function(marker){
+    //this.pushMarkerTo_(marker);
+//};
 
 MarkerClusterer.prototype._generateInitialClusters = function(marker){
     var maxZoom = this.maxZoom,
         radio = this.settings.maxClusterRadio,
         radioFn = radio;
-
-    log('maxZoom', maxZoom);
 
     if(typeof radio !== "function"){
         radioFn = function(){ return radio;};
@@ -360,7 +371,6 @@ MarkerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
  * @private
  */
 //MarkerClusterer.prototype.addToClosestCluster_ = function(marker){
-    //log('addToClosestCluster_!');
     //var distance = 40000;
     //var clusterAddTo = null;
     //var pos = marker.getPosition();
@@ -377,27 +387,26 @@ MarkerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
     //}
 
     //if(clusterAddTo && clusterAddTo.isMarkerInClusterBounds(marker)){
-        //log('adding marker', marker);
         //clusterAddTo.addMarker(marker);
     //} else {
         //var cluster = new Cluster(this);
         //cluster.addMarker(marker);
         //this.clusters_.push(cluster);
-        //console.log('this.clusters_', this.clusters_);
     //}
 //};
 
-MarkerClusterer.prototype.addToClosestCluster_ = function(marker){
+MarkerClusterer.prototype.addToClosestCluster_ = function(marker, zoom){
     var gridClusters = this._gridClusters,
         gridUnclustered = this._gridUnClustered,
         projection = this.getProjection(),
         markerPoint, z;
 
     //find the lowest zoom level to slot this one in
-    for(;zoom >=0; zoom--){
-        markerPoint = projection.fromLatLngToDivPixel(marker.getPosition());
-    }
-}
+    //for(;zoom >=0; zoom--){
+        //markerPoint = projection.fromLatLngToDivPixel(marker.getPosition(), zoom);
+    //}
+};
+
 MarkerClusterer.prototype.getExtendedBounds = function(bounds){
     var projection = this.getProjection();
 
@@ -441,16 +450,18 @@ MarkerClusterer.prototype.dispatchMarkers_ = function(){
     }
 
     //storage range of zoom
-    //this.minZoom = this.map_.minZoom || 0;
-    //this.maxZoom = this.map_.mapTypes[this.map_.getMapTypeId()].maxZoom;
-    //setup the styles
-    //if (!this._gridClusters) {
-        //this._generateInitialClusters();
-    //};
+    this.minZoom = this.map_.minZoom || 0;
+    this.maxZoom = this.map_.mapTypes[this.map_.getMapTypeId()].maxZoom;
+
+    if (!this._gridClusters) {
+        this._generateInitialClusters();
+    };
+
     //add the markers
-    if(this.opt_markers && ( this.opt_markers || Object.keys(this.opt_markers).length )){
+    if(this.opt_markers && ( this.opt_markers.length || Object.keys(this.opt_markers).length )){
         this.addMarkers(this.opt_markers);
     }
+
     //get bounds of the map
     var mapSouthWest = this.map_.getBounds().getSouthWest(),
         mapNorthEast = this.map_.getBounds().getNorthEast(),
@@ -526,6 +537,27 @@ MarkerClusterer.prototype.isZoomOnClick = function() {
  */
 MarkerClusterer.prototype.getMaxZoom = function() {
   return this.maxZoom_;
+};
+
+/**
+ *
+ * Using by EPSG:3857
+ * source: https://github.com/Leaflet/Leaflet/blob/master/src/geo/projection/Projection.SphericalMercator.js
+* @param {google.maps.Map} map
+* @param {google.maps.LatLng} latlng
+* @param {int} z
+* @return {google.maps.Point}
+*/
+var latlngToPoint = function(map, latlng, z){
+    var RADIUS = 6378137,
+        distance = Math.PI / 180,
+        max = 1 - 1E-15,
+        sin = Math.max(Math.min(Math.sin(latlng.lat() * d), max), -max);
+	var normalizedPoint = map.getProjection().fromLatLngToPoint(latlng); // returns x,y normalized to 0~255
+
+	var scale = Math.pow(2, z);
+	var pixelCoordinate = new google.maps.Point(normalizedPoint.x * scale, normalizedPoint.y * scale);
+	return pixelCoordinate;
 };
 
 //polyfill

@@ -6,18 +6,16 @@
  * @constructor
  * @ignore
  */
-function Cluster(markerClusterer) {
-  this.markerClusterer_ = markerClusterer;
-  this.map_ = markerClusterer.getMap();
-  this.gridSize_ = markerClusterer.getGridSize();
-  this.minClusterSize_ = markerClusterer.getMinClusterSize();
-  this.averageCenter_ = markerClusterer.isAverageCenter();
-  this.center_ = null;
-  this.markers_ = [];
-  this.expandedMarkers_ = [];
-  this.bounds_ = null;
-  this.clusterIcon_ = new ClusterIcon(this, markerClusterer.getStyles(),
-      markerClusterer.getGridSize());
+function Cluster(group, zoom, pointA, pointB) {
+    this._group = group;
+    this._zoom = zoom;
+
+    this._markers = [];
+    this._childClusters = [];
+    this._childCount = 0;
+
+    this._iconNeedsUpdate = true;
+
 };
 
 /**
