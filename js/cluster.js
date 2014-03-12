@@ -7,15 +7,22 @@
  * @ignore
  */
 function Cluster(group, zoom, pointA, pointB) {
-    this._group = group;
+    this.group_ = group;
     this._zoom = zoom;
 
-    this._markers = [];
+    this.markers_ = [];
     this._childClusters = [];
     this._childCount = 0;
 
     this._iconNeedsUpdate = true;
 
+    if(pointA){
+       this.addMarker(pointA);
+    }
+
+    if(pointB){
+      this.addMarker(pointB);
+    }
 };
 
 /**
@@ -51,38 +58,38 @@ Cluster.prototype.addMarker = function(marker) {
 
   if (!this.center_) {
     this.center_ = marker.getPosition();
-    this.calculateBounds_();
+    //this.calculateBounds_();
   } else {
     if (this.averageCenter_) {
-      var l = this.markers_.length + 1;
+      //var l = this.markers_.length + 1;
       var lat = (this.center_.lat() * (l-1) + marker.getPosition().lat()) / l;
       var lng = (this.center_.lng() * (l-1) + marker.getPosition().lng()) / l;
       this.center_ = new google.maps.LatLng(lat, lng);
-      this.calculateBounds_();
+      //this.calculateBounds_();
     }
   }
 
   marker.isAdded = true;
   this.markers_.push(marker);
 
-  var len = this.markers_.length;
-  if (len < this.minClusterSize_ && marker.getMap() != this.map_) {
-    // Min cluster size not reached so show the marker.
-    marker.setMap(this.map_);
-  }
+  //var len = this.markers_.length;
+  //if (len < this.minClusterSize_ && marker.getMap() != this.map_) {
+    //// Min cluster size not reached so show the marker.
+    //marker.setMap(this.map_);
+  //}
 
-  if (len == this.minClusterSize_) {
-    // Hide the markers that were showing.
-    for (var i = 0; i < len; i++) {
-      this.markers_[i].setMap(null);
-    }
-  }
+  //if (len == this.minClusterSize_) {
+    //// Hide the markers that were showing.
+    //for (var i = 0; i < len; i++) {
+      //this.markers_[i].setMap(null);
+    //}
+  //}
 
-  if (len >= this.minClusterSize_) {
-    marker.setMap(null);
-  }
+  //if (len >= this.minClusterSize_) {
+    //marker.setMap(null);
+  //}
 
-  this.updateIcon();
+  //this.updateIcon();
   return true;
 };
 
@@ -93,7 +100,7 @@ Cluster.prototype.addMarker = function(marker) {
  * @return {MarkerClusterer} The associated marker clusterer.
  */
 Cluster.prototype.getMarkerClusterer = function() {
-  return this.markerClusterer_;
+  return this.group_.map_;
 };
 
 
@@ -163,7 +170,7 @@ Cluster.prototype.getCenter = function() {
  */
 Cluster.prototype.calculateBounds_ = function() {
   var bounds = new google.maps.LatLngBounds(this.center_, this.center_);
-  this.bounds_ = this.markerClusterer_.getExtendedBounds(bounds);
+  this.bounds_ = this.group_.map_.getExtendedBounds(bounds);
 };
 
 
@@ -184,7 +191,7 @@ Cluster.prototype.isMarkerInClusterBounds = function(marker) {
  * @return {google.maps.Map} The map.
  */
 Cluster.prototype.getMap = function() {
-  return this.map_;
+  return this.group_.map_;
 };
 
 
@@ -193,13 +200,13 @@ Cluster.prototype.getMap = function() {
  */
 Cluster.prototype.updateIcon = function() {
   //console.log('updateIcon!');
-  var zoom = this.map_.getZoom();
-  var mz = this.markerClusterer_.getMaxZoom();
+  var zoom = this.group_.map_.getZoom();
+  var mz = this.group_.getMaxZoom();
 
   if (mz && zoom > mz) {
     // The zoom is greater than our max zoom so show all the markers in cluster.
     for (var i = 0, marker; marker = this.markers_[i]; i++) {
-      marker.setMap(this.map_);
+      marker.setMap(this.group_.map_);
     }
     return;
   }
@@ -210,8 +217,8 @@ Cluster.prototype.updateIcon = function() {
     return;
   }
 
-  var numStyles = this.markerClusterer_.getStyles().length;
-  var sums = this.markerClusterer_.getCalculator()(this.markers_, numStyles);
+  var numStyles = this.group_.getStyles().length;
+  var sums = this.group_.getCalculator()(this.markers_, numStyles);
   this.clusterIcon_.setCenter(this.center_);
   this.clusterIcon_.setSums(sums);
   this.clusterIcon_.show();

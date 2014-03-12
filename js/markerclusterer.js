@@ -134,6 +134,13 @@ MarkerClusterer.prototype.merge = function(obj1, obj2) {
  * @ignore
  */
 MarkerClusterer.prototype.onAdd = function() {
+
+  this.div_ = document.createElement('DIV');
+
+  var panes = this.getPanes();
+  panes.overlayMouseTarget.appendChild(this.div_);
+  log('div_', this);
+
   this._onLoad(true, function(that){
       that.dispatchMarkers_();
   });
@@ -204,6 +211,7 @@ MarkerClusterer.prototype.addMarkers = function(markers){
         marker = null,
         that = this;
 
+    log('that', that);
     if(markers.length){
         var offset = 0,
             started = (new Date()).getTime();
@@ -221,7 +229,8 @@ MarkerClusterer.prototype.addMarkers = function(markers){
                 }
 
                 marker = markers[offset];
-                that.pushMarkerTo_(marker, that.maxZoom);
+                log('marker', marker);
+                //that.pushMarkerTo_(marker, that.maxZoom);
             }
 
             if(chunkProgress){
@@ -258,13 +267,37 @@ MarkerClusterer.prototype.pushMarkerTo_ = function(marker, zoom){
         gridUnclustered = this._gridUnClustered,
         markerPoint, z, closest;
 
-    for(;zoom >=0; zoom--){
+    for(;zoom >=1; zoom--){
         markerPoint = latlngToPoint( this.map_, marker.getPosition(), zoom);
+        //try find a cluster closest
         closest = gridClusters[zoom].getNearObject(markerPoint);
-        log('marker.getPosition()', marker.getPosition().toString());
-        log('markerPoint', markerPoint.toString());
         if(closest){
+            closest._addChild(marker);
+            marker._parent = closest;
+            return;
         }
+
+        //try find a markers closest for form a new cluster with these
+        closest = gridUnclustered[zoom].getNearObject(markerPoint);
+        if(closest){
+            var parent = closest._parent;
+            if(parent){
+                this._remove(closest, false);
+            }
+            //create new Cluster with these 2 in it
+            var newCluster = new Cluster(this, zoom, closest, marker);
+            gridClusters[zoom].addObject(newCluster,latlngToPoint(this.map_, newCluster.getCenter(), zoom));
+            closest._parent = newCluster;
+            marker._parent = newCluster;
+            //first we create a intermediate parent cluster
+            var lastParent = newCluster;
+            for(z = zoom -1; z > parent._zoom; z--){
+                lastParent = new Cluster(this, z, lastParent);
+                gridClusters[z].addObject(lastParent,latlngToPoint(this.map_, newCluster.getCenter(), zoom));
+            }
+        }
+        //Didn't manage to cluster in at this zoom, record us as a marker here
+        gridUnclustered[zoom].addObject(marker, markerPoint);
     }
     //find the lowest zoom lovel to slot one in
     this.createClusters_();
@@ -540,24 +573,29 @@ MarkerClusterer.prototype.getMaxZoom = function() {
 };
 
 /**
- *
- * Using by EPSG:3857
- * source: https://github.com/Leaflet/Leaflet/blob/master/src/geo/projection/Projection.SphericalMercator.js
 * @param {google.maps.Map} map
 * @param {google.maps.LatLng} latlng
 * @param {int} z
 * @return {google.maps.Point}
 */
 var latlngToPoint = function(map, latlng, z){
-    var RADIUS = 6378137,
-        distance = Math.PI / 180,
-        max = 1 - 1E-15,
-        sin = Math.max(Math.min(Math.sin(latlng.lat() * d), max), -max);
 	var normalizedPoint = map.getProjection().fromLatLngToPoint(latlng); // returns x,y normalized to 0~255
-
 	var scale = Math.pow(2, z);
 	var pixelCoordinate = new google.maps.Point(normalizedPoint.x * scale, normalizedPoint.y * scale);
 	return pixelCoordinate;
+};
+
+/**
+* @param {google.maps.Map} map
+* @param {google.maps.Point} point
+* @param {int} z
+* @return {google.maps.LatLng}
+*/
+var pointToLatlng = function(map, point, z){
+	var scale = Math.pow(2, z);
+	var normalizedPoint = new google.maps.Point(point.x / scale, point.y / scale);
+	var latlng = map.getProjection().fromPointToLatLng(normalizedPoint);
+	return latlng;
 };
 
 //polyfill
