@@ -2,7 +2,7 @@ function MarkerClusterer(map, opt_markers, opts){
     //CONSTANTS
     this.GM = google.maps;
     this.GE = this.GM.event;
-    this.map_ = map;
+    this._map = map;
 
     //extend to google.maps.OverlayView()
     this.extend(MarkerClusterer, this.GM.OverlayView);
@@ -38,7 +38,7 @@ function MarkerClusterer(map, opt_markers, opts){
         polygonOptions:{},
         //
         isAverageCenter: false,
-        styles_: [],
+        _styles: [],
         imagePath: 'http://google-maps-utility-library-v3.googlecode.com/svn/trunk/markerclusterer/' +
                    'images/m',
         imageExtension: 'png'
@@ -48,19 +48,19 @@ function MarkerClusterer(map, opt_markers, opts){
      * @type {Array.<google.maps.Marker>}
      * @private
      */
-    this.markers_ = [];
+    this._markers = [];
 
     /**
      * @type {Array.<Cluster>}
      */
-    this.clusters_ = [];
+    this._clusters = [];
 
     this.sizes = [53, 56, 66, 78, 90];
 
     /**
      * @private
      */
-    this.styles_ = [];
+    this._styles = [];
 
     this._inZoomAnimation = 0;
     this._needsClustering = [];
@@ -71,13 +71,13 @@ function MarkerClusterer(map, opt_markers, opts){
      * @type {boolean}
      * @private
      */
-    this.load_ = false;
+    this._load = false;
 
     /**
     * @type {boolean}
     * @private
     */
-    this.averageCenter_ = false;
+    this._averageCenter = false;
 
     //markers
     this.opt_markers = opt_markers;
@@ -135,14 +135,14 @@ MarkerClusterer.prototype.merge = function(obj1, obj2) {
  */
 MarkerClusterer.prototype.onAdd = function() {
 
-  this.div_ = document.createElement('DIV');
+  this._div = document.createElement('DIV');
 
   var panes = this.getPanes();
-  panes.overlayMouseTarget.appendChild(this.div_);
-  log('div_', this);
+  panes.overlayMouseTarget.appendChild(this._div);
+  log('div', this);
 
   this._onLoad(true, function(that){
-      that.dispatchMarkers_();
+      that._dispatchMarkers();
   });
 };
 
@@ -153,12 +153,12 @@ MarkerClusterer.prototype.onAdd = function() {
  */
 MarkerClusterer.prototype.setupStyles = function() {
   var that = this.settings;
-  if (that.styles_.length) {
+  if (that._styles.length) {
     return;
   }
 
   for (var i = 0, size; size = this.sizes[i]; i++) {
-    that.styles_.push({
+    that._styles.push({
       url: that.imagePath + (i + 1) + '.' + that.imageExtension,
       height: size,
       width: size
@@ -178,27 +178,27 @@ MarkerClusterer.prototype.bindEvents = function(){
     //load the map
 
     //when change the zoom of map
-    this.GE.addListener(this.map_, 'zoom_changed', function(){
+    this.GE.addListener(this._map, 'zoom_changed', function(){
 
         //get the current zoom
-        var zoom = that.map_.getZoom(),
+        var zoom = that._map.getZoom(),
             //set the minZoom or 0 to minZoom variable
             minZoom = that.settings.minZoom || 0,
             //calculate the maxZoom
-            maxZoom = Math.min(that.map_.maxZoom || 100,
-                               that.map_.mapTypes[that.map_.getMapTypeId()].maxZoom);
+            maxZoom = Math.min(that._map.maxZoom || 100,
+                               that._map.mapTypes[that._map.getMapTypeId()].maxZoom);
 
         zoom = Math.min(Math.max(zoom, minZoom), maxZoom);
 
-        if(that.prevZoom_ != zoom) {
-            that.prevzoom_ = zoom;
+        if(that._prevZoom != zoom) {
+            that._prevzoom = zoom;
         }
 
         that.zoomChangedCluster && that.zoomChangedCluster.apply(this);
     });
 
     //when is idle
-    this.GE.addListener(this.map_, 'idle', function(){
+    this.GE.addListener(this._map, 'idle', function(){
         that.idleCluster && that.idleCluster.apply(this);
     });
 
@@ -229,15 +229,30 @@ MarkerClusterer.prototype.addMarkers = function(markers){
                 }
 
                 marker = markers[offset];
+
+                if(marker.isAdded){
+                    continue;
+                }
+
+                that._pushMarkerTo(marker, that.maxZoom);
                 log('marker', marker);
-                //that.pushMarkerTo_(marker, that.maxZoom);
+                log('that.maxZoom', that.maxZoom);
+                //if we just made a cluster of size 2 then we need to remove the other marker from the map (if it is) or we never will
+                if(marker._parent){
+                    //log('marker._parent', marker._parent);
+                    if(marker._parent.getChildCount() === 2){
+                        //var markers = marker._parent.getAllChildMarkers();
+                            //otherMarker = markers[0] === m ? markers[1] : markers[0];
+                        //otherMarker.setMap(null);
+                    }
+                }
             }
 
             if(chunkProgress){
                 //report the progress
                 chunkProgress(offset, markers.length, (new Date()).getTime() - started);
             }
-
+            //render the markers when..
             if(offset === markers.length){
 
             } else {
@@ -249,7 +264,7 @@ MarkerClusterer.prototype.addMarkers = function(markers){
 
     } else if (Object.keys(markers).length){
         for(var marker in markers){
-            this.pushMarkerTo_(markers[marker], that.maxZoom);
+            this._pushMarkerTo(markers[marker], that.maxZoom);
         }
     }
 };
@@ -259,48 +274,77 @@ MarkerClusterer.prototype.addMarkers = function(markers){
  *
  * @private
  */
-MarkerClusterer.prototype.pushMarkerTo_ = function(marker, zoom){
+MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
     marker.isAdded = false;
-    this.markers_.push(marker);
+    this._markers.push(marker);
 
     var gridClusters = this._gridClusters,
         gridUnclustered = this._gridUnClustered,
         markerPoint, z, closest;
 
-    for(;zoom >=1; zoom--){
-        markerPoint = latlngToPoint( this.map_, marker.getPosition(), zoom);
+    //for each zoom
+    for(;zoom >=0; zoom--){
+        //make the position of the marker to pixels according the zoom
+        markerPoint = latlngToPoint( this._map, marker.getPosition(), zoom);
         //try find a cluster closest
         closest = gridClusters[zoom].getNearObject(markerPoint);
         if(closest){
-            closest._addChild(marker);
+            closest.addMarker(marker);
             marker._parent = closest;
             return;
         }
-
         //try find a markers closest for form a new cluster with these
         closest = gridUnclustered[zoom].getNearObject(markerPoint);
         if(closest){
+            //reference a parent of my object closest found
             var parent = closest._parent;
+            //if exists
             if(parent){
-                this._remove(closest, false);
+               //remove the parent of closest
+               this._remove(closest, false);
             }
+
             //create new Cluster with these 2 in it
             var newCluster = new Cluster(this, zoom, closest, marker);
-            gridClusters[zoom].addObject(newCluster,latlngToPoint(this.map_, newCluster.getCenter(), zoom));
+            gridClusters[zoom].addObject(newCluster,latlngToPoint(this._map, newCluster.getCenter(), zoom));
             closest._parent = newCluster;
             marker._parent = newCluster;
+
             //first we create a intermediate parent cluster
             var lastParent = newCluster;
             for(z = zoom -1; z > parent._zoom; z--){
                 lastParent = new Cluster(this, z, lastParent);
-                gridClusters[z].addObject(lastParent,latlngToPoint(this.map_, newCluster.getCenter(), zoom));
+                gridClusters[z].addObject(lastParent,latlngToPoint(this._map, newCluster.getCenter(), zoom));
+            }
+
+            parent.addMarker(lastParent);
+
+            //Removes closest from this zoom level and any above that it is in, replace with newCluster
+            for(z = zoom; z >=0; z--){
+                if(!gridUnclustered[z].removeObj(closest, latlngToPoint(this._map, closest.getPosition(), z))){
+                    break;
+                }
             }
         }
         //Didn't manage to cluster in at this zoom, record us as a marker here
         gridUnclustered[zoom].addObject(marker, markerPoint);
     }
+    this._topClusterer.addMarker(marker);
+    marker._parent = this._topClusterer;
+    return;
     //find the lowest zoom lovel to slot one in
-    this.createClusters_();
+    //this.createClusters_();
+};
+
+/**
+ * Verify if exists the marker into the map
+ *
+ * @private
+ */
+MarkerClusterer.prototype.alreadyExists = function(marker){
+    if(!marker){
+        return false;
+    }
 };
 
 /**
@@ -366,8 +410,8 @@ MarkerClusterer.prototype._generateInitialClusters = function(marker){
  * @private
  */
 MarkerClusterer.prototype._onLoad = function(state, fn) {
-  if (!this.load_) {
-    this.load_ = state;
+  if (!this._load) {
+    this._load = state;
     fn && fn.apply(this,[this]);
   }
 };
@@ -476,15 +520,16 @@ MarkerClusterer.prototype.isMarkerInBounds_ = function(marker, bounds){
     return bounds.contains(marker.getPosition());
 };
 
-MarkerClusterer.prototype.dispatchMarkers_ = function(){
+MarkerClusterer.prototype._dispatchMarkers = function(){
     //if not ready
-    if(!this.load_){
+    if(!this._load){
         return;
     }
 
     //storage range of zoom
-    this.minZoom = this.map_.minZoom || 0;
-    this.maxZoom = this.map_.mapTypes[this.map_.getMapTypeId()].maxZoom;
+    this.minZoom = this._map.minZoom || 0;
+    //this.maxZoom = this._map.mapTypes[this._map.getMapTypeId()].maxZoom;
+    this.maxZoom = 17;
 
     if (!this._gridClusters) {
         this._generateInitialClusters();
@@ -496,19 +541,136 @@ MarkerClusterer.prototype.dispatchMarkers_ = function(){
     }
 
     //get bounds of the map
-    var mapSouthWest = this.map_.getBounds().getSouthWest(),
-        mapNorthEast = this.map_.getBounds().getNorthEast(),
+    var mapSouthWest = this._map.getBounds().getSouthWest(),
+        mapNorthEast = this._map.getBounds().getNorthEast(),
         mapBounds = new this.GM.LatLngBounds(mapSouthWest, mapNorthEast),
         bounds = this.getExtendedBounds(mapBounds);
 
     //works only with the bounds of the viewport
-    for(var i = 0, marker; marker = this.markers_[i]; i++){
-        if(!marker.isAdded && this.isMarkerInBounds_(marker, bounds)){
-            this.addToClosestCluster_(marker);
+    //for(var i = 0, marker; marker = this.markers_[i]; i++){
+        //if(!marker.isAdded && this._isMarkerInBounds(marker, bounds)){
+            //this._addToClosestCluster(marker);
+        //}
+    //}
+};
+
+/**
+ * Internal function for removing a marker from everything.
+ * dontUpdateMap: set to true if you will handle updating the map manually (for bulk functions)
+ * @private
+ */
+MarkerClusterer.prototype._remove = function(marker, removeFromDistanceGrid, dontUpdateMap) {
+    var gridClusters = this._gridClusters,
+        gridUnclustered = this._gridUnClustered,
+        fg = this._featureGroup,
+        map = this._map;
+
+    //remove the marker from distance clusters it might be in
+    if(removeFromDistanceGrid){
+        for(var z = this.maxZoom_; z >= 0; z--){
+            if(!gridUnclustered[z].removeObj(marker, pointToLatlng(this.map_, marker.getPosition(), z))){
+                break;
+            }
+        }
+    }
+
+    //work our way up the clusters removing them as we go if required
+    var cluster = marker._parent,
+        markers = cluster._markers,
+        otherMarker;
+
+    //Remove the marker from the inmediate parents marker list
+    this._arraySplice(markers, marker);
+
+    while(cluster){
+        cluster._childCount--;
+        if(cluster._zoom < 0){
+            //top level, do nothing
+            break;
+        }else if (removeFromDistanceGrid && cluster._childCount <= 1){ //Cluster no longer required
+            //we need to push the other marker up to the parent
+            otherMarker = cluster._markers[0] === marker ? cluster._markers[1] : cluster._markers[0];
+
+            //Update distance grid
+            gridClusters[cluster._zoom].removeObj(cluster, pointToLatlng(this.map_, cluster.getCenter(), cluster._zoom));
+            gridUnclustered[cluster._zoom].addObject(otherMarker, pointToLatlng(this.map_, otherMarker.getPosition(), cluster._zoom));
+
+            //Move otherMarker up to parent
+            this._arraySplice(cluster._parent._childClusters, cluster);
+            cluster._parent._markers.push(otherMarker);
+            otherMarker._parent = cluster._parent;
+
+            if(cluster._icon){
+                //Cluster is currently on the map, need to put the marker on the map instead
+                //fg.remove(cluster);
+            }
+
+        } else {
+
+        }
+        cluster = cluster._parent;
+    }
+
+    delete marker._parent;
+};
+
+/**
+ * Remove the given object from the given array
+ *
+ * @private
+ */
+MarkerClusterer.prototype._arraySplice = function(someArray, obj){
+    for(var i = someArray.length - 1; i >=0; i--){
+        if(someArray[i] === obj){
+            someArray.splice(i, 1);
+            return true;
         }
     }
 };
+/**
+ * Enqueue code to fire after the marker expand/contract has happened
+ * @private
+ */
+MarkerClusterer.prototype._enqueue = function(fn){
+    var that = this;
+    this._queue.push(fn);
+    if(!this._queueTimeout){
+        this._queueTimeout = setTimeout(function(){
+            that._processQueue.apply(that,that);
+        }, 300);
+    }
+};
 
+/**
+ * Process the enqueue
+ * @private
+ */
+MarkerClusterer.prototype._processQueue = function(){
+    for(var i = 0; i < this._queue.length; i++){
+        this._queue[i].call(this);
+    }
+    this._queue.length = 0;
+    clearTimeout(this._queueTimeout);
+    this._queueTimeout = null;
+};
+
+/**
+ * Process the enqueue
+ * @private
+ */
+MarkerClusterer.prototype.eachLayer = function(method, context){
+    var markers = this._needsClustering.slice(),
+        i;
+
+    if(this._topClusterLevel){
+       this,_topClusterLevel.getAllChildMarkers(markers);
+    }
+
+    for( i = markers.length -1; i >=0; i++){
+        method.call(context, markers[i]);
+    }
+
+}
 /**
  * Returns the size of the grid.
  *
@@ -551,7 +713,7 @@ MarkerClusterer.prototype.isAverageCenter = function() {
  *  @return {Object} The styles object.
  */
 MarkerClusterer.prototype.getStyles = function() {
-  return this.settings.styles_;
+  return this.settings._styles;
 };
 
 /**

@@ -7,10 +7,10 @@
  * @ignore
  */
 function Cluster(group, zoom, pointA, pointB) {
-    this.group_ = group;
+    this._group = group;
     this._zoom = zoom;
 
-    this.markers_ = [];
+    this._markers = [];
     this._childClusters = [];
     this._childCount = 0;
 
@@ -32,10 +32,10 @@ function Cluster(group, zoom, pointA, pointB) {
  * @return {boolean} True if the marker is already added.
  */
 Cluster.prototype.isMarkerAlreadyAdded = function(marker) {
-  if (this.markers_.indexOf) {
-    return this.markers_.indexOf(marker) != -1;
+  if (this._markers.indexOf) {
+    return this._markers.indexOf(marker) != -1;
   } else {
-    for (var i = 0, m; m = this.markers_[i]; i++) {
+    for (var i = 0, m; m = this._markers[i]; i++) {
       if (m == marker) {
         return true;
       }
@@ -46,31 +46,80 @@ Cluster.prototype.isMarkerAlreadyAdded = function(marker) {
 
 
 /**
+ * Returns the count of how many child markers we have
+ * @return {Number} Total of children
+ */
+Cluster.prototype.getChildCount = function(){
+    return this._childCount;
+};
+
+/**
+ * Recursively retrieve all child markers of the cluster
+ * @return {Array} Markers
+ */
+Cluster.prototype.getAllChildMarkers = function(storageArray){
+    var storageArray = storageArray || [];
+
+    for(var i = this._childClusters.length - 1; i >= 0; i--){
+        this._childClusters[i].getAllChildMarkers(storageArray);
+    }
+
+    for(var j = this._markers.length - 1; j >=0 ; j++){
+        storageArray.push(this._markers[j]);
+    }
+
+    return storageArray;
+};
+
+/**
  * Add a marker the cluster.
  *
  * @param {google.maps.Marker} marker The marker to add.
  * @return {boolean} True if the marker was added.
  */
-Cluster.prototype.addMarker = function(marker) {
+Cluster.prototype.addMarker = function(marker, isNoteFromChild) {
+
+  var isNotificationFromChildren = (typeof isNoteFromChild === 'undefined')?null: isNoteFromChild;
+  this._iconNeedsUpdate = true;
+  //this._expandBounds(marker);
+
   if (this.isMarkerAlreadyAdded(marker)) {
     return false;
   }
 
-  if (!this.center_) {
-    this.center_ = marker.getPosition();
-    //this.calculateBounds_();
-  } else {
-    if (this.averageCenter_) {
-      //var l = this.markers_.length + 1;
-      var lat = (this.center_.lat() * (l-1) + marker.getPosition().lat()) / l;
-      var lng = (this.center_.lng() * (l-1) + marker.getPosition().lng()) / l;
-      this.center_ = new google.maps.LatLng(lat, lng);
-      //this.calculateBounds_();
+  if(marker instanceof Cluster){
+
+    if(!isNotificationFromChildren){
+        this._childClusters.push(marker);
+        marker._parent = this;
     }
+    this._childCount += marker._childCount;
+
+  } else {
+
+      if(!isNotificationFromChildren){
+        marker.isAdded = true;
+        this._markers.push(marker);
+      }
+      this._childCount++;
+
+      if (!this.center_) {
+        this._center = marker.getPosition();
+        //this.calculateBounds_();
+      } else {
+        if (this.averageCenter_) {
+          //var l = this.markers_.length + 1;
+          var lat = (this._center.lat() * (l-1) + marker.getPosition().lat()) / l;
+          var lng = (this._center.lng() * (l-1) + marker.getPosition().lng()) / l;
+          this._center = new google.maps.LatLng(lat, lng);
+          //this.calculateBounds_();
+        }
+      }
   }
 
-  marker.isAdded = true;
-  this.markers_.push(marker);
+  if(this._parent){
+      this._parent.addMarker(marker, true);
+  }
 
   //var len = this.markers_.length;
   //if (len < this.minClusterSize_ && marker.getMap() != this.map_) {
@@ -100,7 +149,7 @@ Cluster.prototype.addMarker = function(marker) {
  * @return {MarkerClusterer} The associated marker clusterer.
  */
 Cluster.prototype.getMarkerClusterer = function() {
-  return this.group_.map_;
+  return this._group._map;
 };
 
 
@@ -124,34 +173,33 @@ Cluster.prototype.getBounds = function() {
  * Removes the cluster
  */
 Cluster.prototype.remove = function() {
-  this.clusterIcon_.remove();
-  this.markers_.length = 0;
-  delete this.markers_;
+  this._clusterIcon.remove();
+  this._markers.length = 0;
+  delete this._markers;
 
-  this.expandedMarkers_.length = 0;
-  delete this.expandedMarkers_;
+  this._expandedMarkers.length = 0;
+  delete this._expandedMarkers;
 };
 
 
 /**
- * Returns the center of the cluster.
+ * Returns the size of cluster
  *
- * @return {number} The cluster center.
+ * @return {number} The cluster size.
  */
 Cluster.prototype.getSize = function() {
-  return this.markers_.length;
+  return this._markers.length;
 };
 
 
 /**
- * Returns the center of the cluster.
+ * Returns the markers of the cluster
  *
- * @return {Array.<google.maps.Marker>} The cluster center.
+ * @return {Array.<google.maps.Marker>} The markers of cluster.
  */
 Cluster.prototype.getMarkers = function() {
-  return this.markers_;
+  return this._markers;
 };
-
 
 /**
  * Returns the center of the cluster.
@@ -159,7 +207,7 @@ Cluster.prototype.getMarkers = function() {
  * @return {google.maps.LatLng} The cluster center.
  */
 Cluster.prototype.getCenter = function() {
-  return this.center_;
+  return this._center;
 };
 
 
@@ -169,8 +217,8 @@ Cluster.prototype.getCenter = function() {
  * @private
  */
 Cluster.prototype.calculateBounds_ = function() {
-  var bounds = new google.maps.LatLngBounds(this.center_, this.center_);
-  this.bounds_ = this.group_.map_.getExtendedBounds(bounds);
+  var bounds = new google.maps.LatLngBounds(this._center, this._center);
+  this._bounds = this._group._map.getExtendedBounds(bounds);
 };
 
 
@@ -181,7 +229,7 @@ Cluster.prototype.calculateBounds_ = function() {
  * @return {boolean} True if the marker lies in the bounds.
  */
 Cluster.prototype.isMarkerInClusterBounds = function(marker) {
-  return this.bounds_.contains(marker.getPosition());
+  return this._bounds.contains(marker.getPosition());
 };
 
 
@@ -191,7 +239,7 @@ Cluster.prototype.isMarkerInClusterBounds = function(marker) {
  * @return {google.maps.Map} The map.
  */
 Cluster.prototype.getMap = function() {
-  return this.group_.map_;
+  return this._group._map;
 };
 
 
@@ -199,29 +247,29 @@ Cluster.prototype.getMap = function() {
  * Updates the cluster icon
  */
 Cluster.prototype.updateIcon = function() {
-  //console.log('updateIcon!');
-  var zoom = this.group_.map_.getZoom();
-  var mz = this.group_.getMaxZoom();
+  console.log('updateIcon!');
+  var zoom = this._group._map.getZoom();
+  var mz = this._group.getMaxZoom();
 
   if (mz && zoom > mz) {
     // The zoom is greater than our max zoom so show all the markers in cluster.
-    for (var i = 0, marker; marker = this.markers_[i]; i++) {
-      marker.setMap(this.group_.map_);
+    for (var i = 0, marker; marker = this._markers[i]; i++) {
+      marker.setMap(this._group._map);
     }
     return;
   }
 
-  if (this.markers_.length < this.minClusterSize_) {
+  if (this._markers.length < this._minClusterSize) {
     // Min cluster size not yet reached.
-    this.clusterIcon_.hide();
+    this._clusterIcon.hide();
     return;
   }
 
-  var numStyles = this.group_.getStyles().length;
-  var sums = this.group_.getCalculator()(this.markers_, numStyles);
-  this.clusterIcon_.setCenter(this.center_);
-  this.clusterIcon_.setSums(sums);
-  this.clusterIcon_.show();
+  var numStyles = this._group.getStyles().length;
+  var sums = this._group.getCalculator()(this._markers, numStyles);
+  this._clusterIcon.setCenter(this._center);
+  this._clusterIcon.setSums(sums);
+  this._clusterIcon.show();
 };
 
 /**
