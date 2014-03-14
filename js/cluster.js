@@ -87,32 +87,39 @@ Cluster.prototype.addMarker = function(marker, isNoteFromChild) {
     return false;
   }
 
+  //if is Cluster
+  log("marker instanceof Cluster", marker instanceof Cluster);
+
   if(marker instanceof Cluster){
 
     if(!isNotificationFromChildren){
         this._childClusters.push(marker);
         marker._parent = this;
     }
+    //count the children of the cluster with the quantity of the new
+    //marker type cluster
     this._childCount += marker._childCount;
 
+  //or not
   } else {
 
       if(!isNotificationFromChildren){
         marker.isAdded = true;
         this._markers.push(marker);
       }
+
+      //count the new marker appened
       this._childCount++;
 
-      if (!this.center_) {
+      if (!this._center) {
         this._center = marker.getPosition();
-        //this.calculateBounds_();
+        log('this._center', this._center);
       } else {
         if (this.averageCenter_) {
           //var l = this.markers_.length + 1;
           var lat = (this._center.lat() * (l-1) + marker.getPosition().lat()) / l;
           var lng = (this._center.lng() * (l-1) + marker.getPosition().lng()) / l;
           this._center = new google.maps.LatLng(lat, lng);
-          //this.calculateBounds_();
         }
       }
   }
@@ -121,6 +128,7 @@ Cluster.prototype.addMarker = function(marker, isNoteFromChild) {
       this._parent.addMarker(marker, true);
   }
 
+  console.log("this._childCount", this._childCount);
   //var len = this.markers_.length;
   //if (len < this.minClusterSize_ && marker.getMap() != this.map_) {
     //// Min cluster size not reached so show the marker.

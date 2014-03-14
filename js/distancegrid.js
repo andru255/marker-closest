@@ -25,7 +25,7 @@ DistanceGrid.prototype = {
             stamp = this.stamp(obj);
 
         this._objPoint[stamp] = point;
-
+        log('append', point, x, y);
         cell.push(obj);
     },
 
@@ -88,6 +88,7 @@ DistanceGrid.prototype = {
         for(i = y - 1;i <= y + 1; i++){
             row = this._grid[i];
             if(row){
+                log('row', row);
                 for(j = x - 1; j <= x + 1;j++){
                     cell = row[j];
                     if(cell){
@@ -115,7 +116,19 @@ DistanceGrid.prototype = {
         var dx = p2.x - p.x,
             dy = p2.y - p.y;
 
-        return dx * dx + dy * dy;
+		console.log('p2.x - ', p2.x );
+        console.log('p.x', p.x );
+
+        console.log('p2.y - ', p2.y);
+        console.log('p2.y', p.y);
+
+        log('dx', dx);
+        log('dy', dy);
+
+        log('dx * dx', dx * dx);
+        log('dy * dy', dy * dy);
+        log('dist', ( dx * dx ) + ( dy * dy ));
+        return ( dx * dx ) + ( dy * dy );
     }
 
 };
