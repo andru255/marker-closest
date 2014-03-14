@@ -233,7 +233,7 @@ MarkerClusterer.prototype.addMarkers = function(markers){
                     continue;
                 }
 
-                that._pushMarkerTo(marker, that.maxZoom, offset);
+                that._pushMarkerTo(marker, that.maxZoom);
                 //log('marker', marker.getPosition(), marker._parent);
                 //if we just made a cluster of size 2 then we need to remove the other marker from the map (if it is) or we never will
                 if(marker._parent){
@@ -252,7 +252,9 @@ MarkerClusterer.prototype.addMarkers = function(markers){
             }
             //render the markers when..
             if(offset === markers.length){
-
+                this.eachLayer(function(c){
+                    log('c', c);
+                })
             } else {
                 setTimeout(process, this.settings.chunkDelay);
             }
@@ -272,8 +274,7 @@ MarkerClusterer.prototype.addMarkers = function(markers){
  *
  * @private
  */
-MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom, index){
-    log( index + '::::ADDING MARKER WITH ZOOM', marker.getPosition());
+MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
     marker.isAdded = false;
     this._markers.push(marker);
 
@@ -283,24 +284,19 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom, index){
 
     //for each zoom
     for(;zoom >=0; zoom--){
-        log('=======init==========', zoom);
         //make the position of the marker to pixels according the zoom
         markerPoint = latlngToPoint( this._map, marker.getPosition(), zoom);
-        console.log("Point=>>", markerPoint);
         //try find a cluster closest
         var closest = gridClusters[zoom].getNearObject(markerPoint);
         if(closest){
-            log("gridClusters[zoom]", zoom, closest, markerPoint);
             closest.addMarker(marker);
             marker._parent = closest;
-            log('killed!', zoom);
             return;
         }
 
         //try find a markers closest for form a new cluster with these
         closest = gridUnclustered[zoom].getNearObject(markerPoint);
         if(closest){
-            log("gridUnclustered[zoom]",zoom, closest, markerPoint);
             //reference a parent of my object closest found
             var parent = closest._parent;
             //if exists
@@ -310,23 +306,18 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom, index){
             }
 
             //create new Cluster with these 2 in it
-            log('newCluster!', latlngToPoint(this._map, closest.getPosition(), zoom));
             var newCluster = new Cluster(this, zoom, closest, marker);
-            log('appendToGrid', latlngToPoint(this._map, newCluster.getCenter(), zoom));
             gridClusters[zoom].addObject(newCluster,latlngToPoint(this._map, newCluster.getCenter(), zoom));
             closest._parent = newCluster;
             marker._parent = newCluster;
 
             //first we create a intermediate parent cluster
             var lastParent = newCluster;
-            console.log("parent", parent);
-            console.log("parent._zoom", parent._zoom);
 
             for(z = zoom -1; z > parent._zoom; z--){
                 lastParent = new Cluster(this, z, lastParent);
                 gridClusters[z].addObject(lastParent,latlngToPoint(this._map, closest.getPosition(), z));
             }
-            console.log("lastParent", lastParent);
             parent.addMarker(lastParent);
 
             //Removes closest from this zoom level and any above that it is in, replace with newCluster
@@ -335,13 +326,11 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom, index){
                     break;
                 }
             }
-            log('killed!', zoom);
             return;
         }
 
         //Didn't manage to cluster in at this zoom, record us as a marker here
         gridUnclustered[zoom].addObject(marker, markerPoint);
-        log('=======fin==========', zoom);
     }
     this._topClusterer.addMarker(marker);
     marker._parent = this._topClusterer;
