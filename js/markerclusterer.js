@@ -252,9 +252,9 @@ MarkerClusterer.prototype.addMarkers = function(markers){
             }
             //render the markers when..
             if(offset === markers.length){
-                this.eachLayer(function(c){
-                    log('c', c);
-                })
+                that.eachMarker(function(c){
+                });
+                that._topClusterer._recursiveAppendChildToMap(null, that._zoom, this._currentShownBounds);
             } else {
                 setTimeout(process, this.settings.chunkDelay);
             }
@@ -378,9 +378,47 @@ MarkerClusterer.prototype.createClusters_ = function() {
  *
  * @private
  */
-//MarkerClusterer.prototype.addMarker = function(marker){
-    //this.pushMarkerTo_(marker);
-//};
+MarkerClusterer.prototype.addMarker = function(marker){
+    if(marker instanceof Cluster){
+        var array = [];
+        for(var i in marker._markers){
+            array.push(marker._markers[i]);
+        }
+        return this.addMarkers(array);
+    }
+    //dont cluster if dont have data
+    if(!marker.getPosition){
+        this._nonPointGroup.addMarker(marker);
+        return this;
+    }
+
+    if(!this._map){
+        this._needsClustering.push(marker);
+        return this;
+    }
+
+    this._pushMarkerTo(marker, this._maxZoom);
+
+    //Trabajando lo que es visible
+    var visibleMarker = marker,
+        currentZoom = this._map.getZoom();
+
+    if(marker._parent){
+        while(visibleMarker._parent._zoom >= currentZoom){
+            visibleMarker = visibleMarker._parent;
+        }
+    }
+
+    if(this._currentShownBounds.contains(visibleMarker.getPosition())){
+        if(this.settings.animateAddingMarkers){
+            this._animationAddMarker(marker, visibleMarker);
+        } else {
+            this._animationAddMarkerNotAnimated(marker, visibleMarker);
+        }
+    }
+
+    return this;
+};
 
 MarkerClusterer.prototype._generateInitialClusters = function(marker){
     var maxZoom = this.maxZoom,
@@ -487,36 +525,52 @@ MarkerClusterer.prototype.addToClosestCluster_ = function(marker, zoom){
     //}
 };
 
-MarkerClusterer.prototype.getExtendedBounds = function(bounds){
-    var projection = this.getProjection();
+//MarkerClusterer.prototype.getExtendedBounds = function(bounds){
+    //var projection = this.getProjection();
 
-    // Turn the bounds into latlng.
-    var tr = new this.GM.LatLng(bounds.getNorthEast().lat(),
-        bounds.getNorthEast().lng());
+    //// Turn the bounds into latlng.
+    //var tr = new this.GM.LatLng(bounds.getNorthEast().lat(),
+        //bounds.getNorthEast().lng());
 
-    var bl = new this.GM.LatLng(bounds.getSouthWest().lat(),
-        bounds.getSouthWest().lng());
+    //var bl = new this.GM.LatLng(bounds.getSouthWest().lat(),
+        //bounds.getSouthWest().lng());
 
-    // Convert the points to pixels and the extend out by the grid size.
-    var trPix = projection.fromLatLngToDivPixel(tr);
-    trPix.x += this.settings.maxClusterRadio;
-    trPix.y -= this.settings.maxClusterRadio;
+    //// Convert the points to pixels and the extend out by the grid size.
+    //var trPix = projection.fromLatLngToDivPixel(tr);
+    //trPix.x += this.settings.maxClusterRadio;
+    //trPix.y -= this.settings.maxClusterRadio;
 
-    var blPix = projection.fromLatLngToDivPixel(bl);
-    blPix.x -= this.settings.maxClusterRadio;
-    blPix.y += this.settings.maxClusterRadio;
+    //var blPix = projection.fromLatLngToDivPixel(bl);
+    //blPix.x -= this.settings.maxClusterRadio;
+    //blPix.y += this.settings.maxClusterRadio;
 
-    // Convert the pixel points back to LatLng
-    var ne = projection.fromDivPixelToLatLng(trPix);
-    var sw = projection.fromDivPixelToLatLng(blPix);
+    //// Convert the pixel points back to LatLng
+    //var ne = projection.fromDivPixelToLatLng(trPix);
+    //var sw = projection.fromDivPixelToLatLng(blPix);
 
-    // Extend the bounds to contain the new bounds.
-    bounds.extend(ne);
-    bounds.extend(sw);
+    //// Extend the bounds to contain the new bounds.
+    //bounds.extend(ne);
+    //bounds.extend(sw);
 
-    return bounds;
+    //return bounds;
+//};
+MarkerClusterer.prototype._getExpandedVisibleBounds = function(){
+    if(!this.settings.removeOutsideVisibleBounds){
+        return this._map.getBounds();
+    }
+    var map = this._map,
+        bounds = map.getBounds(),
+        sw = bounds.getSouthWest(),
+        ne = bounds.getNorthEast(),
+        latDiff = Math.abs(sw.lat() - ne.lat()),
+        lngDiff = Math.abs(sw.lng() - ne.lng());
+
+
+    return new this.GM.LatLngBounds(
+        new this.GM.LatLng(sw.lat() - latDiff, sw.lng() - lngDiff),
+        new this.GM.LatLng(ne.lat() + latDiff, ne.lng() + lngDiff)
+    );
 };
-
 /*
  * */
 MarkerClusterer.prototype.isMarkerInBounds_ = function(marker, bounds){
@@ -534,6 +588,9 @@ MarkerClusterer.prototype._dispatchMarkers = function(){
     //this.maxZoom = this._map.mapTypes[this._map.getMapTypeId()].maxZoom;
     this.maxZoom = 17;
 
+    this._currentShownBounds = this._getExpandedVisibleBounds();
+
+    log('this._currentShownBounds', this._currentShownBounds)
     if (!this._gridClusters) {
         this._generateInitialClusters();
     };
@@ -661,19 +718,19 @@ MarkerClusterer.prototype._processQueue = function(){
  * Process the enqueue
  * @private
  */
-MarkerClusterer.prototype.eachLayer = function(method, context){
+MarkerClusterer.prototype.eachMarker = function(method, context){
     var markers = this._needsClustering.slice(),
         i;
 
     if(this._topClusterLevel){
-       this,_topClusterLevel.getAllChildMarkers(markers);
+       this._topClusterLevel.getAllChildMarkers(markers);
     }
 
     for( i = markers.length -1; i >=0; i++){
         method.call(context, markers[i]);
     }
 
-}
+};
 /**
  * Returns the size of the grid.
  *

@@ -281,6 +281,81 @@ Cluster.prototype.updateIcon = function() {
 };
 
 /**
+ * Run recursively append the child markers
+ * or clusters
+ */
+Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bounds) {
+    this._recursive(bounds, -1, zoomLevel, function(c){
+        if(zoomLevel === c._zoom){
+            return;
+        }
+        //Add the child markers at startpos
+        for(var i = c._markers.length -1; i >=0; i--){
+            var m = c._markers[i];
+
+            if(!bounds.contains(m.getPosition())){
+                continue;
+            }
+
+            if(startPos){
+                m._bkLatLng = nm.getPosition();
+                m.setPosition(startPos);
+                if(m.setVisible){
+                   m.setVisible(false);
+                }
+            }
+            c._group._featureGroup.addMarker(m);
+        }
+    }, function(c){
+        c._addToMap(startPos);
+    });
+};
+
+/**
+ * Run the given functions recursively to this and child clusters
+ * boundsToApplyTo: a LatLngBounds representing the bounds of what the clusters recursive in to
+ * zoomLevelToStart: Zoom level of start running functions(inclusive)
+ * zoomLevelToStop: Zoom level of stop running functions(inclusive)
+ * runAtEveryLevel: function that takes a marker instanceof Cluster as an argument that should be applied on every level
+ * runAtBottomLevel: function that takes a marker instanceof Cluster as an argument that should be applied at only the bottom level
+ */
+Cluster.prototype._recursive = function(boundsToApplyTo, zoomLevelToStart, zoomLevelToStop, runAtEveryLevel, runAtBottomLevel){
+    var childClusters = this._childClusters,
+        zoom = this.zoom,
+        i, c,
+        eachChildCluster = function(eachChild){
+            for(i = childClusters.length - 1; i >= 0; i--){
+                c = childClusters[i];
+                eachChild(i, c);
+            }
+        };
+
+    if(zoomLevelToStart > zoom){ //Still going down to required depth, just recurse to child clusters
+        eachChildCluster(function(i, child){
+            if(boundsToApplyTo.intersects(child._bounds)){
+              child._recursive(boundsToApplyTo, zoomLevelToStart, zoomLevelToStop, runAtEveryLevel, runAtBottomLevel);
+            }
+        });
+    } else {//In required depth
+
+        if (runAtEveryLevel) {
+            runAtEveryLevel(this);
+        }
+
+        if(runAtBottomLevel && this._zoom === zoomLevelToStop){
+            runAtBottomLevel(this);
+        }
+        //TODO: This loop is almost the same as above
+        if(zoomLevelToStop > zoom){
+            eachChildCluster(function(i, child){
+                if(boundsToApplyTo.intersects(child._bounds)){
+                  child._recursive(boundsToApplyTo, zoomLevelToStart, zoomLevelToStop, runAtEveryLevel, runAtBottomLevel);
+                }
+            });
+        }
+    }
+};
+/**
  *  The function for calculating the cluster icon image.
  *
  *  @param {Array.<google.maps.Marker>} markers The markers in the clusterer.
