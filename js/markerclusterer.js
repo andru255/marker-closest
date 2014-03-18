@@ -254,7 +254,8 @@ MarkerClusterer.prototype.addMarkers = function(markers){
             if(offset === markers.length){
                 that.eachMarker(function(c){
                 });
-                that._topClusterer._recursiveAppendChildToMap(null, that._zoom, this._currentShownBounds);
+                log('this._currentShownBounds', that._currentShownBounds);
+                that._topClusterer._recursiveAppendChildToMap(null, that._zoom, that._currentShownBounds);
             } else {
                 setTimeout(process, this.settings.chunkDelay);
             }
@@ -288,6 +289,7 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
         markerPoint = latlngToPoint( this._map, marker.getPosition(), zoom);
         //try find a cluster closest
         var closest = gridClusters[zoom].getNearObject(markerPoint);
+
         if(closest){
             closest.addMarker(marker);
             marker._parent = closest;
@@ -368,7 +370,7 @@ MarkerClusterer.prototype.createClusters_ = function() {
 
   for (var i = 0, marker; marker = this.markers_[i]; i++) {
     if (!marker.isAdded && this.isMarkerInBounds_(marker, bounds)) {
-      this.addToClosestCluster_(marker);
+      this._addToClosestCluster(marker);
     }
   }
 };
@@ -513,7 +515,7 @@ MarkerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
     //}
 //};
 
-MarkerClusterer.prototype.addToClosestCluster_ = function(marker, zoom){
+MarkerClusterer.prototype._addToClosestCluster = function(marker, zoom){
     var gridClusters = this._gridClusters,
         gridUnclustered = this._gridUnClustered,
         projection = this.getProjection(),
@@ -525,35 +527,34 @@ MarkerClusterer.prototype.addToClosestCluster_ = function(marker, zoom){
     //}
 };
 
-//MarkerClusterer.prototype.getExtendedBounds = function(bounds){
-    //var projection = this.getProjection();
+MarkerClusterer.prototype.getExtendedBounds = function(bounds){
+    var projection = this.getProjection();
 
-    //// Turn the bounds into latlng.
-    //var tr = new this.GM.LatLng(bounds.getNorthEast().lat(),
-        //bounds.getNorthEast().lng());
+    // Turn the bounds into latlng.
+    var tr = new this.GM.LatLng(bounds.getNorthEast().lat(),
+        bounds.getNorthEast().lng());
 
-    //var bl = new this.GM.LatLng(bounds.getSouthWest().lat(),
-        //bounds.getSouthWest().lng());
+    var bl = new this.GM.LatLng(bounds.getSouthWest().lat(),
+        bounds.getSouthWest().lng());
 
-    //// Convert the points to pixels and the extend out by the grid size.
-    //var trPix = projection.fromLatLngToDivPixel(tr);
-    //trPix.x += this.settings.maxClusterRadio;
-    //trPix.y -= this.settings.maxClusterRadio;
+    // Convert the points to pixels and the extend out by the grid size.
+    var trPix = projection.fromLatLngToDivPixel(tr);
+    trPix.x += this.settings.maxClusterRadio;
+    trPix.y -= this.settings.maxClusterRadio;
 
-    //var blPix = projection.fromLatLngToDivPixel(bl);
-    //blPix.x -= this.settings.maxClusterRadio;
-    //blPix.y += this.settings.maxClusterRadio;
+    var blPix = projection.fromLatLngToDivPixel(bl);
+    blPix.x -= this.settings.maxClusterRadio;
+    blPix.y += this.settings.maxClusterRadio;
 
-    //// Convert the pixel points back to LatLng
-    //var ne = projection.fromDivPixelToLatLng(trPix);
-    //var sw = projection.fromDivPixelToLatLng(blPix);
+    // Convert the pixel points back to LatLng
+    var ne = projection.fromDivPixelToLatLng(trPix);
+    var sw = projection.fromDivPixelToLatLng(blPix);
 
-    //// Extend the bounds to contain the new bounds.
-    //bounds.extend(ne);
-    //bounds.extend(sw);
-
-    //return bounds;
-//};
+    // Extend the bounds to contain the new bounds.
+    bounds.extend(ne);
+    bounds.extend(sw);
+    return bounds;
+};
 MarkerClusterer.prototype._getExpandedVisibleBounds = function(){
     if(!this.settings.removeOutsideVisibleBounds){
         return this._map.getBounds();
@@ -572,8 +573,9 @@ MarkerClusterer.prototype._getExpandedVisibleBounds = function(){
     );
 };
 /*
+ * It checks whether the placeholder viewport
  * */
-MarkerClusterer.prototype.isMarkerInBounds_ = function(marker, bounds){
+MarkerClusterer.prototype._isMarkerInBounds = function(marker, bounds){
     return bounds.contains(marker.getPosition());
 };
 
@@ -590,7 +592,6 @@ MarkerClusterer.prototype._dispatchMarkers = function(){
 
     this._currentShownBounds = this._getExpandedVisibleBounds();
 
-    log('this._currentShownBounds', this._currentShownBounds)
     if (!this._gridClusters) {
         this._generateInitialClusters();
     };

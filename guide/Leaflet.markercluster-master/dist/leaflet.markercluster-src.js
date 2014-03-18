@@ -195,12 +195,12 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 					if (this.hasLayer(m)) {
 						continue;
 					}
-					
-					
+
+
 					this._addLayer(m, this._maxZoom);
-					
+
 					//console.log('m', m.getLatLng(), m.__parent);
-					
+
 					//If we just made a cluster of size 2 then we need to remove the other marker from the map (if it is) or we never will
 					if (m.__parent) {
 						//console.log('marker._parent', m.__parent);
@@ -222,7 +222,6 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 				if (offset === layersArray.length) {
 					//Update the icons of all those visible clusters that were affected
 					this._featureGroup.eachLayer(function (c) {
-						console.log("c", c);
 						if (c instanceof L.MarkerCluster && c._iconNeedsUpdate) {
 							c._updateIcon();
 						}
@@ -733,7 +732,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 		var maxZoom = this._map.getMaxZoom(),
 			radius = this.options.maxClusterRadius,
 			radiusFn = radius;
-	
+
 		//If we just set maxClusterRadius to a single number, we need to create
 		//a simple function to return that number. Otherwise, we just have to
 		//use the function we've passed in.
@@ -747,7 +746,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 		this._maxZoom = maxZoom;
 		this._gridClusters = {};
 		this._gridUnclustered = {};
-	
+
 		//Set up DistanceGrids for each zoom
 		for (var zoom = maxZoom; zoom >= 0; zoom--) {
 			this._gridClusters[zoom] = new L.DistanceGrid(radiusFn(zoom));
@@ -1203,7 +1202,7 @@ L.MarkerCluster = L.Marker.extend({
 		if (this.__parent) {
 			this.__parent._addChild(new1, true);
 		}
-		
+
 	},
 
 	//Expand our bounds and tell our parent to
@@ -1892,7 +1891,7 @@ L.MarkerCluster.include(!L.DomUtil.TRANSITION ? {
 			if (m.setOpacity) {
 				m.setZIndexOffset(1000000); //Make these appear on top of EVERYTHING
 				m.setOpacity(0);
-			
+
 				fg.addLayer(m);
 
 				m._setPos(thisLayerPos);
@@ -1916,7 +1915,7 @@ L.MarkerCluster.include(!L.DomUtil.TRANSITION ? {
 			//Move marker to new position
 			m._preSpiderfyLatlng = m._latlng;
 			m.setLatLng(newPos);
-			
+
 			if (m.setOpacity) {
 				m.setOpacity(1);
 			}

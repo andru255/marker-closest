@@ -113,7 +113,6 @@ Cluster.prototype.addMarker = function(marker, isNoteFromChild) {
 
       if (!this._center) {
         this._center = marker.getPosition();
-        log('this._center', this._center);
       } else {
         if (this.averageCenter_) {
           //var l = this.markers_.length + 1;
@@ -218,6 +217,15 @@ Cluster.prototype.getCenter = function() {
   return this._center;
 };
 
+
+/**
+ * Set the center of the cluster.
+ *
+ * @param {google.maps.LatLng} The cluster center.
+ */
+Cluster.prototype.setCenter = function(position) {
+  this._center = position;
+};
 
 /**
  * Calculated the extended bounds of the cluster with the grid.
@@ -363,7 +371,7 @@ Cluster.prototype._recursive = function(boundsToApplyTo, zoomLevelToStart, zoomL
  *  @return {Object} A object properties: 'text' (string) and 'index' (number).
  *  @private
  */
-MarkerClusterer.prototype.calculator_ = function(markers, numStyles) {
+Cluster.prototype.calculator_ = function(markers, numStyles) {
   var index = 0;
   var count = markers.length;
   var dv = count;
@@ -387,7 +395,7 @@ MarkerClusterer.prototype.calculator_ = function(markers, numStyles) {
  *     'text' (string) and 'index' (number).
  *
  */
-MarkerClusterer.prototype.setCalculator = function(calculator) {
+Cluster.prototype.setCalculator = function(calculator) {
   this.calculator_ = calculator;
 };
 
@@ -397,6 +405,17 @@ MarkerClusterer.prototype.setCalculator = function(calculator) {
  *
  * @return {function(Array, number)} the calculator function.
  */
-MarkerClusterer.prototype.getCalculator = function() {
+Cluster.prototype.getCalculator = function() {
   return this.calculator_;
+};
+
+/**
+ * Basic intermediate append a marker or cluster in the map
+ * @private
+ */
+Cluster.prototype._addToMap = function(startPosition) {
+  if(startPosition){
+      this.bkLatLng = this.getCenter();
+      this.setCenter(startPosition);
+  }
 };

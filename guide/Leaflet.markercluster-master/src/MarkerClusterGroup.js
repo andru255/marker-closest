@@ -190,8 +190,8 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 					if (this.hasLayer(m)) {
 						continue;
 					}
-					
-					
+
+
 					this._addLayer(m, this._maxZoom);
 					//If we just made a cluster of size 2 then we need to remove the other marker from the map (if it is) or we never will
 					if (m.__parent) {
@@ -217,6 +217,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 					});
 
 					this._topClusterLevel._recursivelyAddChildrenToMap(null, this._zoom, this._currentShownBounds);
+
 				} else {
 					setTimeout(process, this.options.chunkDelay);
 				}
@@ -722,7 +723,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 		var maxZoom = this._map.getMaxZoom(),
 			radius = this.options.maxClusterRadius,
 			radiusFn = radius;
-	
+
 		//If we just set maxClusterRadius to a single number, we need to create
 		//a simple function to return that number. Otherwise, we just have to
 		//use the function we've passed in.
@@ -736,7 +737,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 		this._maxZoom = maxZoom;
 		this._gridClusters = {};
 		this._gridUnclustered = {};
-	
+
 		//Set up DistanceGrids for each zoom
 		for (var zoom = maxZoom; zoom >= 0; zoom--) {
 			this._gridClusters[zoom] = new L.DistanceGrid(radiusFn(zoom));
