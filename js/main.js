@@ -23,7 +23,7 @@ function initialize() {
             position: latLng
         });
         markers.push(marker);
-        marker.setMap(map);
+        //marker.setMap(map);
         //oms.addMarker(marker);
     }
 

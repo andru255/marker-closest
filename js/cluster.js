@@ -16,6 +16,8 @@ function Cluster(group, zoom, pointA, pointB) {
 
     this._iconNeedsUpdate = true;
 
+    this._clusterIcon = new ClusterIcon(this, this._group.getStyles(), this._group.getGridSize());
+
     if(pointA){
        this.addMarker(pointA);
     }
@@ -88,8 +90,6 @@ Cluster.prototype.addMarker = function(marker, isNoteFromChild) {
   }
 
   //if is Cluster
-  log("marker instanceof Cluster", marker instanceof Cluster);
-
   if(marker instanceof Cluster){
 
     if(!isNotificationFromChildren){
@@ -127,7 +127,7 @@ Cluster.prototype.addMarker = function(marker, isNoteFromChild) {
       this._parent.addMarker(marker, true);
   }
 
-  console.log("this._childCount", this._childCount);
+  //console.log("this._childCount", this._childCount);
   //var len = this.markers_.length;
   //if (len < this.minClusterSize_ && marker.getMap() != this.map_) {
     //// Min cluster size not reached so show the marker.
@@ -263,7 +263,6 @@ Cluster.prototype.getMap = function() {
  * Updates the cluster icon
  */
 Cluster.prototype.updateIcon = function() {
-  console.log('updateIcon!');
   var zoom = this._group._map.getZoom();
   var mz = this._group.getMaxZoom();
 
@@ -282,7 +281,7 @@ Cluster.prototype.updateIcon = function() {
   }
 
   var numStyles = this._group.getStyles().length;
-  var sums = this._group.getCalculator()(this._markers, numStyles);
+  var sums = this.getCalculator()(this.getChildCount(), numStyles);
   this._clusterIcon.setCenter(this._center);
   this._clusterIcon.setSums(sums);
   this._clusterIcon.show();
@@ -306,13 +305,12 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
             }
 
             if(startPos){
-                m._bkLatLng = nm.getPosition();
+                m._bkLatLng = m.getPosition();
                 m.setPosition(startPos);
                 if(m.setVisible){
                    m.setVisible(false);
                 }
             }
-            c._group._featureGroup.addMarker(m);
         }
     }, function(c){
         c._addToMap(startPos);

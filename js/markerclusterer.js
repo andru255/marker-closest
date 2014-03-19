@@ -137,9 +137,9 @@ MarkerClusterer.prototype.onAdd = function() {
 
   this._div = document.createElement('DIV');
 
-  var panes = this.getPanes();
-  panes.overlayMouseTarget.appendChild(this._div);
-  log('div', this);
+  //var panes = this.getPanes();
+  //panes.overlayMouseTarget.appendChild(this._div);
+  //log('div', this);
 
   this._onLoad(true, function(that){
       that._dispatchMarkers();
@@ -204,62 +204,55 @@ MarkerClusterer.prototype.bindEvents = function(){
 
 };
 
-MarkerClusterer.prototype.addMarkers = function(markers){
+MarkerClusterer.prototype.addMarkers = function(markerCollection){
     var chunked = this.settings.chunkedLoading,
         chunkInterval = this.settings.chunkInterval,
         chunkProgress = this.settings.chunkProgress,
         marker = null,
         that = this;
 
-    if(markers.length){
+    if(markerCollection.length){
         var offset = 0,
             started = (new Date()).getTime();
 
         var process = function(){
             var start = (new Date()).getTime();
 
-            for(;offset < markers.length; offset++){
+            for(;offset < markerCollection.length; offset++){
                 if(chunked && offset % 200 === 0){
-                    //every couple hundred markers, instrument the time elapsed since processing started:
+                    //every couple hundred markersCollection, instrument the time elapsed since processing started:
                     var elapsed = (new Date()).getTime() - start;
                     if(elapsed > chunkInterval){
                         break;
                     }
                 }
 
-                marker = markers[offset];
+                marker = markerCollection[offset];
 
                 if(marker.isAdded){
                     continue;
                 }
 
-                that._pushMarkerTo(marker, that.maxZoom);
-                //log('marker', marker.getPosition(), marker._parent);
+                //that._pushMarkerTo(marker, that.maxZoom);
                 //if we just made a cluster of size 2 then we need to remove the other marker from the map (if it is) or we never will
                 if(marker._parent){
-                    //log('marker._parent', marker._parent);
                     if(marker._parent.getChildCount() === 2){
-                        //var markers = marker._parent.getAllChildMarkers();
-                            //otherMarker = markers[0] === m ? markers[1] : markers[0];
-                        //otherMarker.setMap(null);
+                        var markers = marker._parent.getAllChildMarkers();
+                            otherMarker = markers[0] === marker ? markers[1] : markers[0];
                     }
                 }
             }
 
             if(chunkProgress){
                 //report the progress
-                chunkProgress(offset, markers.length, (new Date()).getTime() - started);
+                chunkProgress(offset, markerCollection.length, (new Date()).getTime() - started);
             }
             //render the markers when..
-            if(offset === markers.length){
-                that.eachMarker(function(c){
-                });
-                log('this._currentShownBounds', that._currentShownBounds);
+            if(offset === markerCollection.length){
                 that._topClusterer._recursiveAppendChildToMap(null, that._zoom, that._currentShownBounds);
             } else {
                 setTimeout(process, this.settings.chunkDelay);
             }
-
         };
         process();
 
@@ -276,7 +269,7 @@ MarkerClusterer.prototype.addMarkers = function(markers){
  * @private
  */
 MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
-    marker.isAdded = false;
+    marker.isAdded = true;
     this._markers.push(marker);
 
     var gridClusters = this._gridClusters,
@@ -793,6 +786,15 @@ MarkerClusterer.prototype.isZoomOnClick = function() {
  */
 MarkerClusterer.prototype.getMaxZoom = function() {
   return this.maxZoom_;
+};
+
+/**
+ *  Gets the max zoom for the clusterer.
+ *
+ *  @return {number} The max zoom level.
+ */
+MarkerClusterer.prototype._animationAddMarkerNotAnimated = function(){
+
 };
 
 /**
