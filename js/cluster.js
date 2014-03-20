@@ -61,15 +61,12 @@ Cluster.prototype.getChildCount = function(){
  */
 Cluster.prototype.getAllChildMarkers = function(storageArray){
     var storageArray = storageArray || [];
-
     for(var i = this._childClusters.length - 1; i >= 0; i--){
         this._childClusters[i].getAllChildMarkers(storageArray);
     }
-
-    for(var j = this._markers.length - 1; j >=0 ; j++){
+    for(var j = this._markers.length - 1; j >=0 ; j--){
         storageArray.push(this._markers[j]);
     }
-
     return storageArray;
 };
 
@@ -311,6 +308,8 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
                    m.setVisible(false);
                 }
             }
+
+            c._group._featureGroup.addMarker(m);
         }
     }, function(c){
         c._addToMap(startPos);
@@ -416,4 +415,5 @@ Cluster.prototype._addToMap = function(startPosition) {
       this.bkLatLng = this.getCenter();
       this.setCenter(startPosition);
   }
+  this._group._featureGroup.appendMarker(this);
 };

@@ -63,7 +63,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 	},
 
 	addLayer: function (layer) {
-
+        console.log('addLayer');
 		if (layer instanceof L.LayerGroup) {
 			var array = [];
 			for (var i in layer._layers) {
@@ -206,8 +206,8 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 						//console.log('marker._parent', m.__parent);
 
 						if (m.__parent.getChildCount() === 2) {
-							var markers = m.__parent.getAllChildMarkers(),
-								otherMarker = markers[0] === m ? markers[1] : markers[0];
+							var markers = m.__parent.getAllChildMarkers();
+                            var otherMarker = markers[0] === m ? markers[1] : markers[0];
 							fg.removeLayer(otherMarker);
 						}
 					}
@@ -1241,6 +1241,7 @@ L.MarkerCluster = L.Marker.extend({
 			this._backupLatlng = this._latlng;
 			this.setLatLng(startPos);
 		}
+        console.log('adding layer!');
 		this._group._featureGroup.addLayer(this);
 	},
 
@@ -1299,6 +1300,7 @@ L.MarkerCluster = L.Marker.extend({
 	},
 
 	_recursivelyAddChildrenToMap: function (startPos, zoomLevel, bounds) {
+        console.log('Recursively!');
 		this._recursively(bounds, -1, zoomLevel,
 			function (c) {
 				if (zoomLevel === c._zoom) {
@@ -1321,8 +1323,7 @@ L.MarkerCluster = L.Marker.extend({
 							nm.setOpacity(0);
 						}
 					}
-
-					c._group._featureGroup.addLayer(nm);
+                    c._group._featureGroup.addLayer(nm);
 				}
 			},
 			function (c) {
@@ -1474,7 +1475,6 @@ L.DistanceGrid.prototype = {
 		    stamp = L.Util.stamp(obj);
 
 		this._objectPoint[stamp] = point;
-		console.log("append", point, x, y);
 		cell.push(obj);
 	},
 

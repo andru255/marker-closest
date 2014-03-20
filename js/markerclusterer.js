@@ -61,11 +61,17 @@ function MarkerClusterer(map, opt_markers, opts){
      * @private
      */
     this._styles = [];
-
-    this._inZoomAnimation = 0;
     this._needsClustering = [];
     this._needsRemoving = [];
     this._currentShownBounds = null;
+    this._inZoomAnimation = 0;
+
+    /**
+     * featureoverlays
+     * @private
+     */
+    this._featureGroup = new featureOverlay(this._map);
+    this._nonPointGroup = new featureOverlay(this._map);
 
     /**
      * @type {boolean}
@@ -134,14 +140,9 @@ MarkerClusterer.prototype.merge = function(obj1, obj2) {
  * @ignore
  */
 MarkerClusterer.prototype.onAdd = function() {
-
-  this._div = document.createElement('DIV');
-
-  //var panes = this.getPanes();
-  //panes.overlayMouseTarget.appendChild(this._div);
-  //log('div', this);
-
   this._onLoad(true, function(that){
+      that._featureGroup.onAppendMarker(that._map);
+      that._nonPointGroup.onAppendMarker(that._map);
       that._dispatchMarkers();
   });
 };
@@ -205,7 +206,9 @@ MarkerClusterer.prototype.bindEvents = function(){
 };
 
 MarkerClusterer.prototype.addMarkers = function(markerCollection){
-    var chunked = this.settings.chunkedLoading,
+    var fg = this._featureGroup,
+        npg = this._nonPointGroup,
+        chunked = this.settings.chunkedLoading,
         chunkInterval = this.settings.chunkInterval,
         chunkProgress = this.settings.chunkProgress,
         marker = null,
@@ -228,17 +231,17 @@ MarkerClusterer.prototype.addMarkers = function(markerCollection){
                 }
 
                 marker = markerCollection[offset];
-
                 if(marker.isAdded){
                     continue;
                 }
 
-                //that._pushMarkerTo(marker, that.maxZoom);
+                that._pushMarkerTo(marker, that.maxZoom);
                 //if we just made a cluster of size 2 then we need to remove the other marker from the map (if it is) or we never will
                 if(marker._parent){
                     if(marker._parent.getChildCount() === 2){
-                        var markers = marker._parent.getAllChildMarkers();
-                            otherMarker = markers[0] === marker ? markers[1] : markers[0];
+                        var markers = marker._parent.getAllChildMarkers(),
+                        otherMarker = markers[0] === marker ? markers[1] : markers[0];
+                        //that._remove(otherMarker);
                     }
                 }
             }
@@ -249,6 +252,11 @@ MarkerClusterer.prototype.addMarkers = function(markerCollection){
             }
             //render the markers when..
             if(offset === markerCollection.length){
+                that._featureGroup.eachMarker(function(i, c){
+                    if(instanceof c === Cluster && c._iconNeedsUpdate){
+                        //update icon!!
+                    }
+                });
                 that._topClusterer._recursiveAppendChildToMap(null, that._zoom, that._currentShownBounds);
             } else {
                 setTimeout(process, this.settings.chunkDelay);
@@ -374,6 +382,7 @@ MarkerClusterer.prototype.createClusters_ = function() {
  * @private
  */
 MarkerClusterer.prototype.addMarker = function(marker){
+    log('Override!');
     if(marker instanceof Cluster){
         var array = [];
         for(var i in marker._markers){
@@ -383,7 +392,7 @@ MarkerClusterer.prototype.addMarker = function(marker){
     }
     //dont cluster if dont have data
     if(!marker.getPosition){
-        this._nonPointGroup.addMarker(marker);
+        this._nonPointGroup.appendMarker(marker);
         return this;
     }
 
