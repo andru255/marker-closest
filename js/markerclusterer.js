@@ -253,7 +253,7 @@ MarkerClusterer.prototype.addMarkers = function(markerCollection){
             //render the markers when..
             if(offset === markerCollection.length){
                 that._featureGroup.eachMarker(function(i, c){
-                    if(instanceof c === Cluster && c._iconNeedsUpdate){
+                    if(c instanceof Cluster && c._iconNeedsUpdate){
                         //update icon!!
                     }
                 });

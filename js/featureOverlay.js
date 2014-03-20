@@ -66,7 +66,7 @@ featureOverlay.prototype.removeMarker = function(marker){
 //remove an Element of the collection
 featureOverlay.prototype.eachMarker = function(fn, context){
     var ctx = (typeof context !== "undefined")? context: this;
-    for(var i = 0; i < this._collection.length++; i++){
-        fn.apply(ctx, [i, markers[i]]);
+    for(var i = 0; i < this._collection.length; i++){
+        fn.apply(ctx, [i, this._collection[i]]);
     };
 };

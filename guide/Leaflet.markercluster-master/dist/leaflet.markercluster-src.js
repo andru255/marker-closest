@@ -163,6 +163,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 
 	//Takes an array of markers and adds them in bulk
 	addLayers: function (layersArray) {
+        console.log('adding..');
 		var fg = this._featureGroup,
 			npg = this._nonPointGroup,
 			chunked = this.options.chunkedLoading,
@@ -195,7 +196,6 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 					if (this.hasLayer(m)) {
 						continue;
 					}
-
 
 					this._addLayer(m, this._maxZoom);
 
