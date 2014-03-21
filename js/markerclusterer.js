@@ -49,7 +49,7 @@ function MarkerClusterer(map, opt_markers, opts){
      * @private
      */
     this._markers = [];
-
+    this._markersBeforeLoadOverlay = [];
     /**
      * @type {Array.<Cluster>}
      */
@@ -141,8 +141,20 @@ MarkerClusterer.prototype.merge = function(obj1, obj2) {
  */
 MarkerClusterer.prototype.onAdd = function() {
   this._onLoad(true, function(that){
+
+      //Remember the current zoom level and bounds
+      this._zoom = this._map.getZoom();
+      //storage range of zoom
+      that.minZoom = that._map.minZoom || 0;
+      this.maxZoom = this._map.mapTypes[this._map.getMapTypeId()].maxZoom;
+
+      that._generateInitialClusters();
+
+
       that._featureGroup.onAppendMarker(that._map);
       that._nonPointGroup.onAppendMarker(that._map);
+
+      that._currentShownBounds = that._getExpandedVisibleBounds();
       that._dispatchMarkers();
   });
 };
@@ -231,6 +243,11 @@ MarkerClusterer.prototype.addMarkers = function(markerCollection){
                 }
 
                 marker = markerCollection[offset];
+
+                //append to Map
+                marker.setMap(that._map);
+
+                //verify if is Added
                 if(marker.isAdded){
                     continue;
                 }
@@ -257,17 +274,14 @@ MarkerClusterer.prototype.addMarkers = function(markerCollection){
                         //update icon!!
                     }
                 });
+                console.log('this._topClusterLevel', that._topClusterer);
+                console.log('that._zoom', that._zoom);
                 that._topClusterer._recursiveAppendChildToMap(null, that._zoom, that._currentShownBounds);
             } else {
                 setTimeout(process, this.settings.chunkDelay);
             }
         };
         process();
-
-    } else if (Object.keys(markers).length){
-        for(var marker in markers){
-            this._pushMarkerTo(markers[marker], that.maxZoom);
-        }
     }
 };
 
@@ -343,17 +357,6 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
 };
 
 /**
- * Verify if exists the marker into the map
- *
- * @private
- */
-MarkerClusterer.prototype.alreadyExists = function(marker){
-    if(!marker){
-        return false;
-    }
-};
-
-/**
  * Creates the clusters.
  *
  * @private
@@ -382,49 +385,56 @@ MarkerClusterer.prototype.createClusters_ = function() {
  * @private
  */
 MarkerClusterer.prototype.addMarker = function(marker){
-    log('Override!');
-    if(marker instanceof Cluster){
-        var array = [];
-        for(var i in marker._markers){
-            array.push(marker._markers[i]);
+    console.log('add a Simple marker!');
+    //verify if the overlayview its loaded
+    //because the overlay projection's value it's necessary
+    if(!this._load){
+        this._markersBeforeLoadOverlay.push(marker);
+    } else {
+        //verify if its a collection of markers
+        if(marker instanceof Cluster){
+            var array = [];
+            for(var i in marker._markers){
+                array.push(marker._markers[i]);
+            }
+            return this.addMarkers(array);
         }
-        return this.addMarkers(array);
-    }
-    //dont cluster if dont have data
-    if(!marker.getPosition){
-        this._nonPointGroup.appendMarker(marker);
-        return this;
-    }
+        //dont cluster if dont have data
+        if(!marker.getPosition){
+            this._nonPointGroup.appendMarker(marker);
+            return this;
+        }
 
-    if(!this._map){
-        this._needsClustering.push(marker);
-        return this;
-    }
+        if(!this._map){
+            this._needsClustering.push(marker);
+            return this;
+        }
 
-    this._pushMarkerTo(marker, this._maxZoom);
+        this._pushMarkerTo(marker, this._maxZoom);
 
-    //Trabajando lo que es visible
-    var visibleMarker = marker,
-        currentZoom = this._map.getZoom();
+        //Trabajando lo que es visible
+        var visibleMarker = marker,
+            currentZoom = this._map.getZoom();
 
-    if(marker._parent){
-        while(visibleMarker._parent._zoom >= currentZoom){
-            visibleMarker = visibleMarker._parent;
+        if(marker._parent){
+            while(visibleMarker._parent._zoom >= currentZoom){
+                visibleMarker = visibleMarker._parent;
+            }
+        }
+
+        if(this._currentShownBounds.contains(visibleMarker.getPosition())){
+            if(this.settings.animateAddingMarkers){
+                this._animationAddMarker(marker, visibleMarker);
+            } else {
+                this._animationAddMarkerNotAnimated(marker, visibleMarker);
+            }
         }
     }
-
-    if(this._currentShownBounds.contains(visibleMarker.getPosition())){
-        if(this.settings.animateAddingMarkers){
-            this._animationAddMarker(marker, visibleMarker);
-        } else {
-            this._animationAddMarkerNotAnimated(marker, visibleMarker);
-        }
-    }
-
     return this;
 };
 
 MarkerClusterer.prototype._generateInitialClusters = function(marker){
+    log('generateInitialClusters!');
     var maxZoom = this.maxZoom,
         radio = this.settings.maxClusterRadio,
         radioFn = radio;
@@ -485,37 +495,6 @@ MarkerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
   var d = R * c;
   return d;
 };
-
-/**
- * Add a marker to a cluster, or creates a new cluster.
- *
- * @param {google.maps.Marker} marker The marker to add.
- * @private
- */
-//MarkerClusterer.prototype.addToClosestCluster_ = function(marker){
-    //var distance = 40000;
-    //var clusterAddTo = null;
-    //var pos = marker.getPosition();
-
-    //for(var i = 0, cluster; cluster = this.clusters_[i]; i++){
-        //var center = cluster.getCenter();
-        //if(center){
-            //var d = this.distanceBetweenPoints_(center, marker.getPosition());
-            //if(d < distance){
-                //distance = d;
-                //clusterAddTo = cluster;
-            //}
-        //}
-    //}
-
-    //if(clusterAddTo && clusterAddTo.isMarkerInClusterBounds(marker)){
-        //clusterAddTo.addMarker(marker);
-    //} else {
-        //var cluster = new Cluster(this);
-        //cluster.addMarker(marker);
-        //this.clusters_.push(cluster);
-    //}
-//};
 
 MarkerClusterer.prototype._addToClosestCluster = function(marker, zoom){
     var gridClusters = this._gridClusters,
@@ -581,27 +560,24 @@ MarkerClusterer.prototype._isMarkerInBounds = function(marker, bounds){
     return bounds.contains(marker.getPosition());
 };
 
+/*
+ * Dispatch the markers in collection after and before the load of the overlay
+ * */
 MarkerClusterer.prototype._dispatchMarkers = function(){
     //if not ready
     if(!this._load){
         return;
     }
 
-    //storage range of zoom
-    this.minZoom = this._map.minZoom || 0;
-    //this.maxZoom = this._map.mapTypes[this._map.getMapTypeId()].maxZoom;
-    this.maxZoom = 17;
-
-    this._currentShownBounds = this._getExpandedVisibleBounds();
-
-    if (!this._gridClusters) {
-        this._generateInitialClusters();
+    //add the simple markers added when before loading of the overlay
+    if(this._markersBeforeLoadOverlay.length){
+        this.addMarkers(this._markersBeforeLoadOverlay);
     };
 
     //add the markers
     if(this.opt_markers && ( this.opt_markers.length || Object.keys(this.opt_markers).length )){
         this.addMarkers(this.opt_markers);
-    }
+    };
 
     //get bounds of the map
     var mapSouthWest = this._map.getBounds().getSouthWest(),

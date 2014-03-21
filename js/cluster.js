@@ -80,7 +80,7 @@ Cluster.prototype.addMarker = function(marker, isNoteFromChild) {
 
   var isNotificationFromChildren = (typeof isNoteFromChild === 'undefined')?null: isNoteFromChild;
   this._iconNeedsUpdate = true;
-  //this._expandBounds(marker);
+  this._expandBounds(marker);
 
   if (this.isMarkerAlreadyAdded(marker)) {
     return false;
@@ -107,45 +107,50 @@ Cluster.prototype.addMarker = function(marker, isNoteFromChild) {
 
       //count the new marker appened
       this._childCount++;
-
-      if (!this._center) {
-        this._center = marker.getPosition();
-      } else {
-        if (this.averageCenter_) {
-          //var l = this.markers_.length + 1;
-          var lat = (this._center.lat() * (l-1) + marker.getPosition().lat()) / l;
-          var lng = (this._center.lng() * (l-1) + marker.getPosition().lng()) / l;
-          this._center = new google.maps.LatLng(lat, lng);
-        }
-      }
   }
 
   if(this._parent){
       this._parent.addMarker(marker, true);
   }
 
-  //console.log("this._childCount", this._childCount);
-  //var len = this.markers_.length;
-  //if (len < this.minClusterSize_ && marker.getMap() != this.map_) {
-    //// Min cluster size not reached so show the marker.
-    //marker.setMap(this.map_);
-  //}
-
-  //if (len == this.minClusterSize_) {
-    //// Hide the markers that were showing.
-    //for (var i = 0; i < len; i++) {
-      //this.markers_[i].setMap(null);
-    //}
-  //}
-
-  //if (len >= this.minClusterSize_) {
-    //marker.setMap(null);
-  //}
-
-  //this.updateIcon();
   return true;
 };
 
+/**
+ * Expand the bounds of the Cluster
+ *
+ */
+Cluster.prototype._expandBounds = function(marker){
+    var addedAccount,
+        addedLatLng = marker._center || marker.getPosition();
+
+    this._bounds = new google.maps.LatLngBounds(addedLatLng, addedLatLng);
+
+    if (marker instanceof Cluster) {
+        this._bounds.union(marker._bounds);
+        addedCount = marker._childCount;
+    } else {
+        this._bounds.extend(addedLatLng);
+        addedCount = 1;
+    }
+
+    if (!this._center) {
+        // when clustering, take position of the first point as the cluster center
+        this._center = marker._center || addedLatLng;
+    }
+
+    // when showing clusters, take weighted average of all points as cluster center
+    var totalCount = this._childCount + addedCount;
+
+    //Calculate weighted latlng for display
+    if (!this._wLatLng) {
+        this._latlng = this._wLatLng = new google.maps.LatLng(addedLatLng.lat(), addedLatLng.lng());
+    } else {
+        var lat = (addedLatLng.lat() * addedCount + this._wLatLng.lat * this._childCount) / totalCount,
+            lng = (addedLatLng.lng() * addedCount + this._wLatLng.lng * this._childCount) / totalCount;
+        this._wLatLng = new google.maps.LatLng(lat, lng);
+    }
+};
 
 /**
  * Returns the marker clusterer that the cluster is associated with.
@@ -289,6 +294,7 @@ Cluster.prototype.updateIcon = function() {
  * or clusters
  */
 Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bounds) {
+    console.log('_recursiveAppendChildToMap');
     this._recursive(bounds, -1, zoomLevel, function(c){
         if(zoomLevel === c._zoom){
             return;
@@ -309,7 +315,7 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
                 }
             }
 
-            c._group._featureGroup.addMarker(m);
+            c._group._featureGroup.appendMarker(m);
         }
     }, function(c){
         c._addToMap(startPos);
@@ -326,15 +332,17 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
  */
 Cluster.prototype._recursive = function(boundsToApplyTo, zoomLevelToStart, zoomLevelToStop, runAtEveryLevel, runAtBottomLevel){
     var childClusters = this._childClusters,
-        zoom = this.zoom,
+        zoom = this._zoom,
         i, c,
         eachChildCluster = function(eachChild){
             for(i = childClusters.length - 1; i >= 0; i--){
                 c = childClusters[i];
-                eachChild(i, c);
+                eachChild.call(this,i,c);
             }
         };
 
+    console.log('Recursively!!');
+    console.log('childClusters.length', childClusters.length);
     if(zoomLevelToStart > zoom){ //Still going down to required depth, just recurse to child clusters
         eachChildCluster(function(i, child){
             if(boundsToApplyTo.intersects(child._bounds)){
@@ -411,6 +419,7 @@ Cluster.prototype.getCalculator = function() {
  * @private
  */
 Cluster.prototype._addToMap = function(startPosition) {
+  log('_addToMap');
   if(startPosition){
       this.bkLatLng = this.getCenter();
       this.setCenter(startPosition);

@@ -44,7 +44,7 @@ function initialize() {
         }
     };
 
-    var markerCluster = new MarkerClusterer(map, markers, {
+    var markerCluster = new MarkerClusterer(map, {
             //The grid size of a cluster in pixels. The grid is a square. The default value is 80.
             maxClusterRadio: 80,
             //The maximum zoom level at which clustering is enabled or null if clustering is to be enabled at all zoom levels. The default value is null.
@@ -52,6 +52,12 @@ function initialize() {
             chunkProgress:updateProgressBar
     });
 
+    //using simple addLayer
+    for(var m = 0; m < markers.length; m++){
+        markerCluster.addMarker(markers[m]);
+    };
+    //using multiple addLayer
+    //for()
     //cuando ejecute el ultimo zoom y existan markers muy cercanos unos a otros
    // google.maps.event.addListener(markerCluster,'clusterclickLastZoom', function(e){
     //    console.log('clusterclickLastZoom', e);

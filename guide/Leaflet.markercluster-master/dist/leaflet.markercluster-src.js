@@ -63,7 +63,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 	},
 
 	addLayer: function (layer) {
-        console.log('addLayer');
+        console.log('adding a simple marker');
 		if (layer instanceof L.LayerGroup) {
 			var array = [];
 			for (var i in layer._layers) {
@@ -163,7 +163,6 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 
 	//Takes an array of markers and adds them in bulk
 	addLayers: function (layersArray) {
-        console.log('adding..');
 		var fg = this._featureGroup,
 			npg = this._nonPointGroup,
 			chunked = this.options.chunkedLoading,
@@ -226,6 +225,8 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 							c._updateIcon();
 						}
 					});
+                    console.log('this._topClusterLevel', this._topClusterLevel);
+                    console.log('this._zoom', this._zoom);
 					this._topClusterLevel._recursivelyAddChildrenToMap(null, this._zoom, this._currentShownBounds);
 				} else {
 					setTimeout(process, this.options.chunkDelay);
@@ -819,7 +820,6 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 			gridUnclustered[zoom].addObject(layer, markerPoint);
 		}
 
-		//console.log("this._topClusterLevel", this._topClusterLevel);
 		//Didn't get in anything, add us to the top
 		this._topClusterLevel._addChild(layer);
 		layer.__parent = this._topClusterLevel;
@@ -1202,7 +1202,6 @@ L.MarkerCluster = L.Marker.extend({
 		if (this.__parent) {
 			this.__parent._addChild(new1, true);
 		}
-
 	},
 
 	//Expand our bounds and tell our parent to
@@ -1241,7 +1240,6 @@ L.MarkerCluster = L.Marker.extend({
 			this._backupLatlng = this._latlng;
 			this.setLatLng(startPos);
 		}
-        console.log('adding layer!');
 		this._group._featureGroup.addLayer(this);
 	},
 
@@ -1300,7 +1298,7 @@ L.MarkerCluster = L.Marker.extend({
 	},
 
 	_recursivelyAddChildrenToMap: function (startPos, zoomLevel, bounds) {
-        console.log('Recursively!');
+        console.log('_recursiveAppendChildToMap');
 		this._recursively(bounds, -1, zoomLevel,
 			function (c) {
 				if (zoomLevel === c._zoom) {
@@ -1402,6 +1400,9 @@ L.MarkerCluster = L.Marker.extend({
 		var childClusters = this._childClusters,
 		    zoom = this._zoom,
 			i, c;
+
+        console.log('Recursively!!');
+        console.log('childClusters.length', childClusters.length);
 
 		if (zoomLevelToStart > zoom) { //Still going down to required depth, just recurse to child clusters
 			for (i = childClusters.length - 1; i >= 0; i--) {

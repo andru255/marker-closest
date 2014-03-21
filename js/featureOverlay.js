@@ -43,14 +43,28 @@ featureOverlay.prototype.stamp = (function(){
 
 //Append new item into the collection
 featureOverlay.prototype.appendMarker = function(marker){
-    marker.id = this.stamp(marker);
-    this._collection.push(marker);
+    log('marker', marker);
+    log('marker.getPosition()', marker.getPosition());
+    if(!this.existsMarker(marker)){
+        marker.id = this.stamp(marker);
+        marker.addedIn = true;
+        this._collection.push(marker);
+        if(this._map){
+            log('marker', marker);
+            marker.setMap(this._map);
+        }
+    }
 };
 
 //Append the markers to Map
 featureOverlay.prototype.appendTo = function(map){
     var _map = (typeof map !== "undefined")? map: this._map;
-    this.eachMarker(map.setMap, map);
+    this.eachMarker(_map.setMap, _map);
+};
+
+//Verify if exists in the collection or already added
+featureOverlay.prototype.existsMarker = function(marker){
+    return marker.addedIn || false;
 };
 
 //remove an Element of the collection
