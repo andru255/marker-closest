@@ -26,35 +26,9 @@ function ClusterIcon(cluster, styles, opt_padding) {
   this._div = null;
   this._sums = null;
   this._visible = false;
-
   this.setMap(this._map);
-}
 
-/**
- * Triggers the clusterclick event and zoom's if the option is set.
- */
-//ClusterIcon.prototype.triggerClusterClick = function() {
-  //var group = this.cluster_.getMarkerClusterer();
-  //var zoom = this.map_.getZoom();
-  //var mzMap = this.map_.maxZoom || 21;
-  //var mz = markerClusterer.getMaxZoom();
-
-  ////console.log('prev', markerClusterer.prevZoom_);
-  //// Trigger the clusterclick event.
-  //google.maps.event.trigger(markerClusterer, 'clusterclick', this.cluster_);
-
-  //if (markerClusterer.isZoomOnClick()) {
-      //console.log('zoom');
-      //// Zoom into the cluster.
-      //// si ha llegado a un máximo y sigue agrupado
-      //// es porque los markers son demasiado cercanos entre si
-      ////if (zoom === mzMap || ( mz && zoom > mz )) {
-          ////var markerOverlap = new MarkerOverlap(this.cluster_);
-      ////}else {
-          //this.map_.fitBounds(this.cluster_.getBounds());
-      ////}
-  //}
-//};
+};
 
 /**
  * Adding the cluster icon to the dom.
@@ -62,6 +36,7 @@ function ClusterIcon(cluster, styles, opt_padding) {
  */
 ClusterIcon.prototype.onAdd = function() {
   this._div = document.createElement('DIV');
+
   if (this._visible) {
     var pos = this._getPosFromLatLng(this._center);
     this._div.style.cssText = this.createCss(pos);
@@ -71,7 +46,7 @@ ClusterIcon.prototype.onAdd = function() {
   var panes = this.getPanes();
   panes.overlayMouseTarget.appendChild(this._div);
 
-  var that = this;
+  //var that = this;
   //click en cluster
   //google.maps.event.addDomListener(this.div_, 'click', function() {
     //that.triggerClusterClick();
@@ -189,11 +164,11 @@ ClusterIcon.prototype.useStyle = function() {
 
 
 /**
- * Sets the center of the icon.
+ * Sets the center/position of the icon.
  *
  * @param {google.maps.LatLng} center The latlng to set as the center.
  */
-ClusterIcon.prototype.setCenter = function(center) {
+ClusterIcon.prototype.setPosition = function(center) {
   this._center = center;
 };
 

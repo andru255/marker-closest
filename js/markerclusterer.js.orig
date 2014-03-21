@@ -245,7 +245,7 @@ MarkerClusterer.prototype.addMarkers = function(markerCollection){
                 marker = markerCollection[offset];
 
                 //append to Map
-                //marker.setMap(that._map);
+                marker.setMap(that._map);
 
                 //verify if is Added
                 if(marker.isAdded){
@@ -357,6 +357,7 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
 };
 
 /**
+<<<<<<< HEAD
  * Verify if exists the marker into the map
  *
  * @private
@@ -365,9 +366,7 @@ MarkerClusterer.prototype.alreadyExists = function(marker){
     if(!marker){
         return false;
     }
-};
-
-/**
+=======
  * Creates the clusters.
  *
  * @private
@@ -388,6 +387,7 @@ MarkerClusterer.prototype.createClusters_ = function() {
       this._addToClosestCluster(marker);
     }
   }
+>>>>>>> 08072d9a97dd69f962762ecaf71d86d88b10b0e2
 };
 
 /**
@@ -441,7 +441,6 @@ MarkerClusterer.prototype.addMarker = function(marker){
             }
         }
     }
-
     return this;
 };
 
@@ -508,6 +507,21 @@ MarkerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
   return d;
 };
 
+<<<<<<< HEAD
+=======
+MarkerClusterer.prototype._addToClosestCluster = function(marker, zoom){
+    var gridClusters = this._gridClusters,
+        gridUnclustered = this._gridUnClustered,
+        projection = this.getProjection(),
+        markerPoint, z;
+
+    //find the lowest zoom level to slot this one in
+    //for(;zoom >=0; zoom--){
+        //markerPoint = projection.fromLatLngToDivPixel(marker.getPosition(), zoom);
+    //}
+};
+
+>>>>>>> 08072d9a97dd69f962762ecaf71d86d88b10b0e2
 MarkerClusterer.prototype.getExtendedBounds = function(bounds){
     var projection = this.getProjection();
 
