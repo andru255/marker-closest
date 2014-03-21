@@ -235,9 +235,12 @@ Cluster.prototype.setPosition = function(position) {
  * @param {google.maps.LatLng} The cluster center.
  */
 Cluster.prototype.setMap = function(position) {
-    this._clusterIcon.setPosition(this.getPosition());
-    this._clusterIcon.setLabel();
-    this._clusterIcon.show();
+    this.updateIcon();
+    //this._clusterIcon.setPosition(this.getPosition());
+    //this._clusterIcon.setSums({text:"1", index: 1});
+    //this._clusterIcon.show();
+    //this._clusterIcon.setLabel();
+    //this._clusterIcon.show();
 };
 
 /**
@@ -276,26 +279,9 @@ Cluster.prototype.getMap = function() {
  * Updates the cluster icon
  */
 Cluster.prototype.updateIcon = function() {
-  var zoom = this._group._map.getZoom();
-  var mz = this._group.getMaxZoom();
-
-  if (mz && zoom > mz) {
-    // The zoom is greater than our max zoom so show all the markers in cluster.
-    for (var i = 0, marker; marker = this._markers[i]; i++) {
-      marker.setMap(this._group._map);
-    }
-    return;
-  }
-
-  if (this._markers.length < this._minClusterSize) {
-    // Min cluster size not yet reached.
-    this._clusterIcon.hide();
-    return;
-  }
-
   var numStyles = this._group.getStyles().length;
-  var sums = this.getCalculator()(this.getChildCount(), numStyles);
-  this._clusterIcon.setPosition(this._center);
+  var sums = this._calculator(this.getChildCount(), numStyles);
+  this._clusterIcon.setPosition(this.getPosition());
   this._clusterIcon.setSums(sums);
   this._clusterIcon.show();
 };
@@ -305,7 +291,6 @@ Cluster.prototype.updateIcon = function() {
  * or clusters
  */
 Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bounds) {
-    console.log('_recursiveAppendChildToMap');
     this._recursive(bounds, -1, zoomLevel, function(c){
         if(zoomLevel === c._zoom){
             return;
@@ -352,8 +337,6 @@ Cluster.prototype._recursive = function(boundsToApplyTo, zoomLevelToStart, zoomL
             }
         };
 
-    console.log('Recursively!!');
-    console.log('childClusters.length', childClusters.length);
     if(zoomLevelToStart > zoom){ //Still going down to required depth, just recurse to child clusters
         eachChildCluster(function(i, child){
             if(boundsToApplyTo.intersects(child._bounds)){
@@ -387,9 +370,9 @@ Cluster.prototype._recursive = function(boundsToApplyTo, zoomLevelToStart, zoomL
  *  @return {Object} A object properties: 'text' (string) and 'index' (number).
  *  @private
  */
-Cluster.prototype.calculator_ = function(markers, numStyles) {
+Cluster.prototype._calculator = function(total, numStyles) {
   var index = 0;
-  var count = markers.length;
+  var count = total;
   var dv = count;
   while (dv !== 0) {
     dv = parseInt(dv / 10, 10);
@@ -430,7 +413,6 @@ Cluster.prototype.getCalculator = function() {
  * @private
  */
 Cluster.prototype._addToMap = function(startPosition) {
-  log('_addToMap');
   if(startPosition){
       this.bkLatLng = this.getPosition();
       this.setPosition(startPosition);

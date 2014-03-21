@@ -274,8 +274,7 @@ MarkerClusterer.prototype.addMarkers = function(markerCollection){
                         //update icon!!
                     }
                 });
-                console.log('this._topClusterLevel', that._topClusterer);
-                console.log('that._zoom', that._zoom);
+
                 that._topClusterer._recursiveAppendChildToMap(null, that._zoom, that._currentShownBounds);
             } else {
                 setTimeout(process, this.settings.chunkDelay);
