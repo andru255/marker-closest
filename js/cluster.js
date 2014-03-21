@@ -210,7 +210,7 @@ Cluster.prototype.getMarkers = function() {
  *
  * @return {google.maps.LatLng} The cluster center.
  */
-Cluster.prototype.getCenter = function() {
+Cluster.prototype.getPosition = function() {
   return this._center;
 };
 
@@ -220,7 +220,7 @@ Cluster.prototype.getCenter = function() {
  *
  * @param {google.maps.LatLng} The cluster center.
  */
-Cluster.prototype.setCenter = function(position) {
+Cluster.prototype.setPosition = function(position) {
   this._center = position;
 };
 
@@ -279,7 +279,7 @@ Cluster.prototype.updateIcon = function() {
 
   var numStyles = this._group.getStyles().length;
   var sums = this.getCalculator()(this.getChildCount(), numStyles);
-  this._clusterIcon.setCenter(this._center);
+  this._clusterIcon.setPosition(this._center);
   this._clusterIcon.setSums(sums);
   this._clusterIcon.show();
 };
@@ -412,8 +412,8 @@ Cluster.prototype.getCalculator = function() {
  */
 Cluster.prototype._addToMap = function(startPosition) {
   if(startPosition){
-      this.bkLatLng = this.getCenter();
-      this.setCenter(startPosition);
+      this.bkLatLng = this.getPosition();
+      this.setPosition(startPosition);
   }
   this._group._featureGroup.appendMarker(this);
 };

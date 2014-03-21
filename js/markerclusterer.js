@@ -310,7 +310,7 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
 
             //create new Cluster with these 2 in it
             var newCluster = new Cluster(this, zoom, closest, marker);
-            gridClusters[zoom].addObject(newCluster,latlngToPoint(this._map, newCluster.getCenter(), zoom));
+            gridClusters[zoom].addObject(newCluster,latlngToPoint(this._map, newCluster.getPosition(), zoom));
             closest._parent = newCluster;
             marker._parent = newCluster;
 
@@ -351,29 +351,6 @@ MarkerClusterer.prototype.alreadyExists = function(marker){
     if(!marker){
         return false;
     }
-};
-
-/**
- * Creates the clusters.
- *
- * @private
- */
-MarkerClusterer.prototype.createClusters_ = function() {
-  if (!this.load_) {
-    return;
-  }
-
-  // Get our current map view bounds.
-  // Create a new bounds object so we don't affect the map.
-  var mapBounds = new google.maps.LatLngBounds(this.map_.getBounds().getSouthWest(),
-      this.map_.getBounds().getNorthEast());
-  var bounds = this.getExtendedBounds(mapBounds);
-
-  for (var i = 0, marker; marker = this.markers_[i]; i++) {
-    if (!marker.isAdded && this.isMarkerInBounds_(marker, bounds)) {
-      this._addToClosestCluster(marker);
-    }
-  }
 };
 
 /**
@@ -484,49 +461,6 @@ MarkerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
   var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   var d = R * c;
   return d;
-};
-
-/**
- * Add a marker to a cluster, or creates a new cluster.
- *
- * @param {google.maps.Marker} marker The marker to add.
- * @private
- */
-//MarkerClusterer.prototype.addToClosestCluster_ = function(marker){
-    //var distance = 40000;
-    //var clusterAddTo = null;
-    //var pos = marker.getPosition();
-
-    //for(var i = 0, cluster; cluster = this.clusters_[i]; i++){
-        //var center = cluster.getCenter();
-        //if(center){
-            //var d = this.distanceBetweenPoints_(center, marker.getPosition());
-            //if(d < distance){
-                //distance = d;
-                //clusterAddTo = cluster;
-            //}
-        //}
-    //}
-
-    //if(clusterAddTo && clusterAddTo.isMarkerInClusterBounds(marker)){
-        //clusterAddTo.addMarker(marker);
-    //} else {
-        //var cluster = new Cluster(this);
-        //cluster.addMarker(marker);
-        //this.clusters_.push(cluster);
-    //}
-//};
-
-MarkerClusterer.prototype._addToClosestCluster = function(marker, zoom){
-    var gridClusters = this._gridClusters,
-        gridUnclustered = this._gridUnClustered,
-        projection = this.getProjection(),
-        markerPoint, z;
-
-    //find the lowest zoom level to slot this one in
-    //for(;zoom >=0; zoom--){
-        //markerPoint = projection.fromLatLngToDivPixel(marker.getPosition(), zoom);
-    //}
 };
 
 MarkerClusterer.prototype.getExtendedBounds = function(bounds){
@@ -655,7 +589,7 @@ MarkerClusterer.prototype._remove = function(marker, removeFromDistanceGrid, don
             otherMarker = cluster._markers[0] === marker ? cluster._markers[1] : cluster._markers[0];
 
             //Update distance grid
-            gridClusters[cluster._zoom].removeObj(cluster, pointToLatlng(this.map_, cluster.getCenter(), cluster._zoom));
+            gridClusters[cluster._zoom].removeObj(cluster, pointToLatlng(this.map_, cluster.getPosition(), cluster._zoom));
             gridUnclustered[cluster._zoom].addObject(otherMarker, pointToLatlng(this.map_, otherMarker.getPosition(), cluster._zoom));
 
             //Move otherMarker up to parent
