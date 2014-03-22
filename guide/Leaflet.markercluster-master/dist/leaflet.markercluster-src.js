@@ -225,9 +225,8 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 							c._updateIcon();
 						}
 					});
-                    console.log('this._topClusterLevel', this._topClusterLevel);
-                    console.log('this._zoom', this._zoom);
-					this._topClusterLevel._recursivelyAddChildrenToMap(null, this._zoom, this._currentShownBounds);
+                    //console.log('this._currentShownBounds', this._currentShownBounds);
+                    this._topClusterLevel._recursivelyAddChildrenToMap(null, this._zoom, this._currentShownBounds);
 				} else {
 					setTimeout(process, this.options.chunkDelay);
 				}
@@ -776,6 +775,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 
 		//Find the lowest zoom level to slot this one in
 		for (; zoom >= 0; zoom--) {
+            console.log('zoom', zoom);
 			markerPoint = this._map.project(layer.getLatLng(), zoom); // calculate pixel position
 			//Try find a cluster close by
 			var closest = gridClusters[zoom].getNearObject(markerPoint);
@@ -786,7 +786,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 			}
 
 			//Try find a marker close by to form a new cluster with
-			closest = gridUnclustered[zoom].getNearObject(markerPoint, true);
+			closest = gridUnclustered[zoom].getNearObject(markerPoint);
 			if (closest) {
 				var parent = closest.__parent;
 				if (parent) {
@@ -1301,6 +1301,8 @@ L.MarkerCluster = L.Marker.extend({
         console.log('_recursiveAppendChildToMap');
 		this._recursively(bounds, -1, zoomLevel,
 			function (c) {
+
+                console.log('c', c);
 				if (zoomLevel === c._zoom) {
 					return;
 				}
@@ -1402,7 +1404,6 @@ L.MarkerCluster = L.Marker.extend({
 			i, c;
 
         console.log('Recursively!!');
-        console.log('childClusters.length', childClusters.length);
 
 		if (zoomLevelToStart > zoom) { //Still going down to required depth, just recurse to child clusters
 			for (i = childClusters.length - 1; i >= 0; i--) {

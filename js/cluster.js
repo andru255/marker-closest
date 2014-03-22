@@ -236,11 +236,6 @@ Cluster.prototype.setPosition = function(position) {
  */
 Cluster.prototype.setMap = function(position) {
     this.updateIcon();
-    //this._clusterIcon.setPosition(this.getPosition());
-    //this._clusterIcon.setSums({text:"1", index: 1});
-    //this._clusterIcon.show();
-    //this._clusterIcon.setLabel();
-    //this._clusterIcon.show();
 };
 
 /**

@@ -43,14 +43,11 @@ featureOverlay.prototype.stamp = (function(){
 
 //Append new item into the collection
 featureOverlay.prototype.appendMarker = function(marker){
-    log('marker', marker);
-    log('marker.getPosition()', marker.getPosition());
     if(!this.existsMarker(marker)){
         marker.id = this.stamp(marker);
         marker.addedIn = true;
         this._collection.push(marker);
         if(this._map){
-            log('marker', marker);
             marker.setMap(this._map);
         }
     }

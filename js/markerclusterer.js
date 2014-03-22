@@ -94,8 +94,6 @@ function MarkerClusterer(map, opt_markers, opts){
     this.setMap(map);
     //setup the styles
     this.setupStyles();
-    //load the events with the map
-    this.bindEvents();
 };
 
 /**
@@ -143,19 +141,26 @@ MarkerClusterer.prototype.onAdd = function() {
   this._onLoad(true, function(that){
 
       //Remember the current zoom level and bounds
-      this._zoom = this._map.getZoom();
+      that._zoom = that._map.getZoom();
       //storage range of zoom
       that.minZoom = that._map.minZoom || 0;
-      this.maxZoom = this._map.mapTypes[this._map.getMapTypeId()].maxZoom;
+      that.maxZoom = that._map.maxZoom || this._map.mapTypes[this._map.getMapTypeId()].maxZoom;
 
+      //generate the initial Clusters
       that._generateInitialClusters();
 
-
+      //create two feature overlays
       that._featureGroup.onAppendMarker(that._map);
       that._nonPointGroup.onAppendMarker(that._map);
 
+      //get the bounds of the viewport
       that._currentShownBounds = that._getExpandedVisibleBounds();
+
+      //dispatch the markers
       that._dispatchMarkers();
+
+      //load the events with the map
+      that.bindEvents();
   });
 };
 
@@ -274,7 +279,7 @@ MarkerClusterer.prototype.addMarkers = function(markerCollection){
                         //update icon!!
                     }
                 });
-
+                //console.log('this._currentShownBounds', that._currentShownBounds);
                 that._topClusterer._recursiveAppendChildToMap(null, that._zoom, that._currentShownBounds);
             } else {
                 setTimeout(process, this.settings.chunkDelay);
@@ -299,6 +304,7 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
 
     //for each zoom
     for(;zoom >=0; zoom--){
+        console.log('zoom', zoom);
         //make the position of the marker to pixels according the zoom
         markerPoint = latlngToPoint( this._map, marker.getPosition(), zoom);
         //try find a cluster closest
@@ -356,46 +362,12 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
 };
 
 /**
- * Verify if exists the marker into the map
- *
- * @private
- */
-MarkerClusterer.prototype.alreadyExists = function(marker){
-    if(!marker){
-        return false;
-    }
-};
-
-/**
- * Creates the clusters.
- *
- * @private
- */
-MarkerClusterer.prototype.createClusters_ = function() {
-  if (!this.load_) {
-    return;
-  }
-
-  // Get our current map view bounds.
-  // Create a new bounds object so we don't affect the map.
-  var mapBounds = new google.maps.LatLngBounds(this.map_.getBounds().getSouthWest(),
-      this.map_.getBounds().getNorthEast());
-  var bounds = this.getExtendedBounds(mapBounds);
-
-  for (var i = 0, marker; marker = this.markers_[i]; i++) {
-    if (!marker.isAdded && this.isMarkerInBounds_(marker, bounds)) {
-      this._addToClosestCluster(marker);
-    }
-  }
-};
-
-/**
  * Append a new single marker
  *
  * @private
  */
 MarkerClusterer.prototype.addMarker = function(marker){
-    console.log('add a Simple marker!');
+    console.log('add marker');
     //verify if the overlayview its loaded
     //because the overlay projection's value it's necessary
     if(!this._load){
@@ -420,7 +392,7 @@ MarkerClusterer.prototype.addMarker = function(marker){
             return this;
         }
 
-        this._pushMarkerTo(marker, this._maxZoom);
+        this._pushMarkerTo(marker, this.maxZoom);
 
         //Trabajando lo que es visible
         var visibleMarker = marker,
@@ -480,31 +452,6 @@ MarkerClusterer.prototype._onLoad = function(state, fn) {
     this._load = state;
     fn && fn.apply(this,[this]);
   }
-};
-
-/**
- * Calculates the distance between two latlng locations in km.
- * @see http://www.movable-type.co.uk/scripts/latlong.html
- *
- * @param {google.maps.LatLng} p1 The first lat lng point.
- * @param {google.maps.LatLng} p2 The second lat lng point.
- * @return {number} The distance between the two points in km.
- * @private
-*/
-MarkerClusterer.prototype.distanceBetweenPoints_ = function(p1, p2) {
-  if (!p1 || !p2) {
-    return 0;
-  }
-
-  var R = 6371; // Radius of the Earth in km
-  var dLat = (p2.lat() - p1.lat()) * Math.PI / 180;
-  var dLon = (p2.lng() - p1.lng()) * Math.PI / 180;
-  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(p1.lat() * Math.PI / 180) * Math.cos(p2.lat() * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  var d = R * c;
-  return d;
 };
 
 MarkerClusterer.prototype.getExtendedBounds = function(bounds){
@@ -606,7 +553,7 @@ MarkerClusterer.prototype._remove = function(marker, removeFromDistanceGrid, don
     //remove the marker from distance clusters it might be in
     if(removeFromDistanceGrid){
         for(var z = this.maxZoom_; z >= 0; z--){
-            if(!gridUnclustered[z].removeObj(marker, pointToLatlng(this.map_, marker.getPosition(), z))){
+            if(!gridUnclustered[z].removeObj(marker, pointToLatlng(map, marker.getPosition(), z))){
                 break;
             }
         }
@@ -630,8 +577,8 @@ MarkerClusterer.prototype._remove = function(marker, removeFromDistanceGrid, don
             otherMarker = cluster._markers[0] === marker ? cluster._markers[1] : cluster._markers[0];
 
             //Update distance grid
-            gridClusters[cluster._zoom].removeObj(cluster, pointToLatlng(this.map_, cluster.getPosition(), cluster._zoom));
-            gridUnclustered[cluster._zoom].addObject(otherMarker, pointToLatlng(this.map_, otherMarker.getPosition(), cluster._zoom));
+            gridClusters[cluster._zoom].removeObj(cluster, pointToLatlng(map, cluster.getPosition(), cluster._zoom));
+            gridUnclustered[cluster._zoom].addObject(otherMarker, pointToLatlng(map, otherMarker.getPosition(), cluster._zoom));
 
             //Move otherMarker up to parent
             this._arraySplice(cluster._parent._childClusters, cluster);
@@ -640,7 +587,7 @@ MarkerClusterer.prototype._remove = function(marker, removeFromDistanceGrid, don
 
             if(cluster._icon){
                 //Cluster is currently on the map, need to put the marker on the map instead
-                //fg.remove(cluster);
+                fg.removeMarker(cluster);
             }
 
         } else {

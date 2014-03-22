@@ -9,7 +9,7 @@ function initialize() {
                     zoom: 13,
                     center: center,
                     mapTypeId: google.maps.MapTypeId.ROADMAP,
-                    maxZoom: 18
+                    maxZoom: 17
                 });
 
     //var oms = new OverlappingMarkerSpiderfier(map, {markersWontMove: true, markersWontHide: true});
