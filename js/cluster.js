@@ -71,6 +71,38 @@ Cluster.prototype.getAllChildMarkers = function(storageArray){
 };
 
 /**
+ * Recursively retrieve all child markers of the cluster
+ * @return {Array} Markers
+ */
+Cluster.prototype.zoomToBounds = function(){
+    var childClusters = this._childClusters.slice(),
+        map = this._group._map,
+        boundsZoom = this.getBoundsZoom(this._bounds, map),
+        zoom = this._zoom + 1,
+        mapZoom = map.getZoom(),
+        i;
+
+    console.log('this._bounds', this._bounds);
+    console.log('boundsZoom', boundsZoom);
+
+    while(childClusters.length > 0 && boundsZoom > zoom){
+        zoom++;
+        var newClusters = [];
+        for( i = 0; childClusters.length; i++){
+            newClusters = newClusters.concat(childClusters[i]._childClusters);
+        }
+        childClusters = newClusters;
+    }
+
+    if(boundsZoom > zoom){
+        this._group._map.panTo(this._latlng, maxZoom);
+    } else if (boundsZoom <= mapZoom){//If fitBounds wouldn't zoom us down, zoom us down instead
+        this._group._map.setView(this._latlng, maxZoom + 1);
+    } else {
+        this._group._map.fitBounds(this._bounds);
+    }
+};
+/**
  * Add a marker the cluster.
  *
  * @param {google.maps.Marker} marker The marker to add.
@@ -177,6 +209,32 @@ Cluster.prototype.getBounds = function() {
   return bounds;
 };
 
+/**
+ * Helper for get bounds by zoom
+ *
+ * @return {google.maps.LatLngBounds} bounds by zoom.
+ */
+Cluster.prototype.getBoundsZoom = function(bounds, map) {
+    var WORLD_DIM = {height: 256, width: 256},
+        ZOOM_MAX = 21,
+        latRad = function(lat){
+            var sin = Math.sin( lat * Math.PI / 180),
+                radX2 = Math.log( (1 + sin) / (1 - sin)) / 2;
+            return Math.max(Math.min(radX2, Math.PI), -Math.PI) / 2;
+        },
+        zoom = function(mapPx, worldPx, fraction){
+            return Math.floor(Math.log(mapPx / worldPx / fraction) / Math.LN2);
+        },
+        ne = bounds.getNorthEast(),
+        sw = bounds.getSouthWest(),
+        latFraction = (latRad(ne.lat()) - latRad(sw.lat())) / Math.PI,
+        lngDiff = ne.lng() - sw.lng(),
+        lngFraction = ((lngDiff < 0) ? (lngDiff + 360) : lngDiff) / 360,
+        latZoom = zoom(map.height, WORLD_DIM.height, latFraction),
+        lngZoom = zoom(map.width, WORLD_DIM.width, lngFraction);
+
+    return Math.min(latZoom, lngZoom, ZOOM_MAX);
+};
 
 /**
  * Removes the cluster
@@ -276,8 +334,15 @@ Cluster.prototype.getMap = function() {
 Cluster.prototype.updateIcon = function() {
   var numStyles = this._group.getStyles().length;
   var sums = this._calculator(this.getChildCount(), numStyles);
+  var that = this;
+  //set the position
   this._clusterIcon.setPosition(this.getPosition());
+  //set the total of markers
   this._clusterIcon.setSums(sums);
+  //set the click event
+  this._clusterIcon.bindEvt('click', function(){
+      that.zoomToBounds();
+  });
   this._clusterIcon.show();
 };
 
@@ -290,6 +355,7 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
         if(zoomLevel === c._zoom){
             return;
         }
+        log('c._markers', c._markers);
         //Add the child markers at startpos
         for(var i = c._markers.length -1; i >=0; i--){
             var m = c._markers[i];

@@ -471,8 +471,8 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 		this._zoom = this._map.getZoom();
 		this._currentShownBounds = this._getExpandedVisibleBounds();
 
-		this._map.on('zoomend', this._zoomEnd, this);
-		this._map.on('moveend', this._moveEnd, this);
+        this._map.on('zoomend', this._zoomEnd, this);
+        this._map.on('moveend', this._moveEnd, this);
 
 		if (this._spiderfierOnAdd) { //TODO FIXME: Not sure how to have spiderfier add something on here nicely
 			this._spiderfierOnAdd();
@@ -1137,6 +1137,9 @@ L.MarkerCluster = L.Marker.extend({
 			mapZoom = map.getZoom(),
 			i;
 
+        console.log('this._bounds', this._bounds);
+        console.log('boundsZoom', boundsZoom);
+
 		//calculate how fare we need to zoom down to see all of the markers
 		while (childClusters.length > 0 && boundsZoom > zoom) {
 			zoom++;
@@ -1302,11 +1305,11 @@ L.MarkerCluster = L.Marker.extend({
 		this._recursively(bounds, -1, zoomLevel,
 			function (c) {
 
-                console.log('c', c);
 				if (zoomLevel === c._zoom) {
 					return;
 				}
 
+                console.log('c._markers', c._markers);
 				//Add our child markers at startPos (so they can be animated out)
 				for (var i = c._markers.length - 1; i >= 0; i--) {
 					var nm = c._markers[i];

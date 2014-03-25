@@ -3,6 +3,8 @@ function MarkerClusterer(map, opt_markers, opts){
     this.GM = google.maps;
     this.GE = this.GM.event;
     this._map = map;
+    this._map.height = map.clientHeight;
+    this._map.width = map.clientWidth;
 
     //extend to google.maps.OverlayView()
     this.extend(MarkerClusterer, this.GM.OverlayView);

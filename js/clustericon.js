@@ -26,8 +26,17 @@ function ClusterIcon(cluster, styles, opt_padding) {
   this._div = null;
   this._sums = null;
   this._visible = false;
+  this._events = {};
   this.setMap(this._map);
 
+};
+
+/**
+ * Adding the event onclick
+ * @ignore
+ */
+ClusterIcon.prototype.onClickEvt = function(e) {
+    that.triggerEvt('click');
 };
 
 /**
@@ -46,14 +55,25 @@ ClusterIcon.prototype.onAdd = function() {
   var panes = this.getPanes();
   panes.overlayMouseTarget.appendChild(this._div);
 
-  //var that = this;
+  var that = this;
   //click en cluster
-  //google.maps.event.addDomListener(this.div_, 'click', function() {
-    //that.triggerClusterClick();
-  //});
+  google.maps.event.addDomListener(this._div, 'click', function(){
+      that.triggerEvt('click');
+  });
 };
 
+/* Execute an Event
+ * */
+ClusterIcon.prototype.triggerEvt = function(name){
+    return this._events[name]();
+};
 
+/*
+ * Storage an Event
+* */
+ClusterIcon.prototype.bindEvt = function(name, fn){
+    this._events[name] = fn;
+};
 /**
  * Returns the position to place the div dending on the latlng.
  *
