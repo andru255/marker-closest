@@ -67,6 +67,7 @@ function MarkerClusterer(map, opt_markers, opts){
     this._needsRemoving = [];
     this._currentShownBounds = null;
     this._inZoomAnimation = 0;
+    this._queue = [];
 
     /**
      * featureoverlays
@@ -197,26 +198,10 @@ MarkerClusterer.prototype.bindEvents = function(){
     var that = this;
     //load the map
 
-    //when change the zoom of map
+    //when zoom is changed
     this.GE.addListener(this._map, 'zoom_changed', function(){
-
-        //get the current zoom
-        var zoom = that._map.getZoom(),
-            //set the minZoom or 0 to minZoom variable
-            minZoom = that.settings.minZoom || 0,
-            //calculate the maxZoom
-            maxZoom = Math.min(that._map.maxZoom || 100,
-                               that._map.mapTypes[that._map.getMapTypeId()].maxZoom);
-
-        zoom = Math.min(Math.max(zoom, minZoom), maxZoom);
-
-        if(that._prevZoom != zoom) {
-            that._prevzoom = zoom;
-        }
-
-        that.zoomChangedCluster && that.zoomChangedCluster.apply(this);
+        that._zoomChanged();
     });
-
     //when is idle
     this.GE.addListener(this._map, 'idle', function(){
         that.idleCluster && that.idleCluster.apply(this);
@@ -722,7 +707,7 @@ MarkerClusterer.prototype.getMaxZoom = function() {
 };
 
 /**
- *  Gets the max zoom for the clusterer.
+ *  adding the markers not animateds
  *
  *  @return {number} The max zoom level.
  */
@@ -730,6 +715,175 @@ MarkerClusterer.prototype._animationAddMarkerNotAnimated = function(){
 
 };
 
+/**
+ *  method associated within zoom changed of the map
+ *  @private
+ */
+MarkerClusterer.prototype._zoomChanged = function(){
+    if(!this._map){
+        return;
+    }
+    this._mergeSplitClusters();
+    this._zoom = this._map.getZoom();
+    this._currentShownBounds = this._getExpandedVisibleBounds();
+};
+
+/**
+ *  method associated within zoom changed of the map
+ *  @private
+ */
+MarkerClusterer.prototype._mergeSplitClusters  = function(){
+    this._processQueue();
+    if(this._zoom < this._map.getZoom() && this._currentShownBounds.contains(this._getExpandedVisibleBounds().getCenter())){
+        this._topClusterer._recursiveRemoveChildrenFromMap(this._currentShownBounds, this._zoom, this._getExpandedVisibleBounds());
+        this._animationZoomIn(this._zoom, this._map.getZoom());
+    } else if(this._zoom > this._map.getZoom()){//Zoom out, merge
+        this._animationStart();
+        this._animationZoomOut(this._zoom, this._map.getZoom());
+    } else {
+        this._moveEnd();
+    }
+};
+/**
+ *  method what animate the zoom in
+ *  @private
+ */
+MarkerClusterer.prototype._animationZoomIn = function(previousZoomLevel, newZoomLevel){
+    var bounds = this._getExpandedVisibleBounds(),
+        fg = this._featureGroup,
+        i;
+
+    //Add all children of current clusters to map and remove those clusters from map
+    this._topClusterer._recursive(bounds, previousZoomLevel, 0, function(c){
+        var startPos = c.getPosition(),
+            markers = c._markers,
+            m;
+
+        if(!bounds.contains(startPos)){
+            startPos = null;
+        }
+
+        if (c._isSingleParent() && previousZoomLevel + 1 === newZoomLevel) { //Immediately add the new child and remove us
+            fg.removeMarker(c);
+            c._recursiveAppendChildToMap(null, newZoomLevel, bounds);
+        }
+
+        //Remove all markers that aren't visible any more
+        //TODO: Do we actually need to do this on the higher levels too?
+        for (i = markers.length - 1; i >= 0; i--) {
+            m = markers[i];
+            if (!bounds.contains(m.getPosition())) {
+                fg.removeMarker(m);
+            }
+        }
+    });
+
+    //this._forceLayout()
+    //update opacities
+    this._topClusterer._recursiveBecomeVisible(bounds, newZoomLevel);
+    //TODO Maybe? Update markers in _recursiveBecomeVisible
+    fg.eachMarker(function (n) {
+        if (!(n instanceof Cluster) && n.getIcon) {
+            n.setVisible(true);
+        }
+    });
+
+    //update the positions of the just added clusters/markers
+    this._topClusterer._recursive(bounds, previousZoomLevel, newZoomLevel, function (c) {
+        c._recursiveRestoreChildPositions(newZoomLevel);
+    });
+
+    //Remove the old clusters and close the zoom animation
+    this._enqueue(function () {
+        //update the positions of the just added clusters/markers
+        this._topClusterer._recursive(bounds, previousZoomLevel, 0, function (c) {
+            fg.removeMarker(c);
+            c.setVisible(true);
+        });
+
+        this._animationEnd();
+    });
+};
+
+/**
+ *  method what animate start
+ *  @private
+ */
+MarkerClusterer.prototype._animationStart = function(){
+    this._inZoomAnimation++;
+};
+
+/**
+ *  method what animate start
+ *  @private
+ */
+MarkerClusterer.prototype._animationEnd = function(){
+    this._inZoomAnimation--;
+};
+
+/**
+ *  method what move end
+ *  @private
+ */
+MarkerClusterer.prototype._moveEnd = function(){
+    if (this._inZoomAnimation) {
+        return;
+    }
+    var newBounds = this._getExpandedVisibleBounds();
+
+    this._topClusterer._recursiveRemoveChildrenFromMap(this._currentShownBounds, this._zoom, newBounds);
+    this._topClusterer._recursiveAddChildrenToMap(null, this._map.getZoom(), newBounds);
+
+    this._currentShownBounds = newBounds;
+    return;
+};
+/**
+ *  method what animate the zoom out
+ *  @private
+ */
+MarkerClusterer.prototype._animationZoomOut = function(previousZoomLevel, newZoomLevel){
+    this._animationZoomOutSingle(this._topClusterer, previousZoomLevel -1, newZoomLevel);
+    //Need to add markers for those that weren't on the map before but are now
+    this._topClusterer._recursiveAppendChildToMap(null, newZoomLevel, this._getExpandedVisibleBounds());
+    //Remove markers that were on the map before but won't be now
+    this._topClusterer._recursiveRemoveChildrenFromMap(this._currentShownBounds, previousZoomLevel, this._getExpandedVisibleBounds());
+};
+
+/**
+ *  method what animate the zoom out
+ *  @private
+ */
+MarkerClusterer.prototype._animationZoomOutSingle = function(cluster, previousZoomLevel, newZoomLevel){
+    var bounds = this._getExpandedVisibleBounds();
+    //Animate all of the markers in the clusters to move to their cluster center point
+    cluster._recursiveAnimateChildrenInAndAddSelfToMap(bounds, previousZoomLevel + 1, newZoomLevel);
+
+    var me = this;
+
+    //Update the opacity (If we immediately set it they won't animate)
+    //this._forceLayout();
+    cluster._recursiveBecomeVisible(bounds, newZoomLevel);
+
+    //TODO: Maybe use the transition timing stuff to make this more reliable
+    //When the animations are done, tidy up
+    this._enqueue(function () {
+
+        //This cluster stopped being a cluster before the timeout fired
+        if (cluster._childCount === 1) {
+            var m = cluster._markers[0];
+            //If we were in a cluster animation at the time then the opacity and position of our child could be wrong now, so fix it
+            m.setLatLng(m.getPosition());
+            if (m.setVisible) {
+                m.setVisible(true);
+            }
+        } else {
+            cluster._recursive(bounds, newZoomLevel, 0, function (c) {
+                c._recursiveRemoveChildrenFromMap(bounds, previousZoomLevel + 1);
+            });
+        }
+        me._animationEnd();
+    });
+};
 /**
 * @param {google.maps.Map} map
 * @param {google.maps.LatLng} latlng

@@ -95,9 +95,11 @@ Cluster.prototype.zoomToBounds = function(){
     }
 
     if(boundsZoom > zoom){
-        this._group._map.panTo(this._latlng, maxZoom);
+        this._group._map.panTo(this._latlng);
+        this._group._map.setZoom(maxZoom);
     } else if (boundsZoom <= mapZoom){//If fitBounds wouldn't zoom us down, zoom us down instead
-        this._group._map.setView(this._latlng, maxZoom + 1);
+        this._group._map.panTo(this._latlng);
+        this._group._map.setZoom(maxZoom + 1);
     } else {
         this._group._map.fitBounds(this._bounds);
     }
@@ -347,6 +349,18 @@ Cluster.prototype.updateIcon = function() {
 };
 
 /**
+ * handles the visibility of the clusterer
+ * @private
+ * */
+Cluster.prototype.setVisible = function(flag){
+    if(flag){
+        this.updateIcon();
+    } else {
+        this._clusterIcon.hide();
+    }
+};
+
+/**
  * Run recursively append the child markers
  * or clusters
  */
@@ -380,6 +394,120 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
 };
 
 /**
+ * Run recursively remove the child markers
+ * or clusters
+ */
+Cluster.prototype._recursiveRemoveChildrenFromMap = function(previousBounds, zoomLevel, exceptBounds) {
+    var m, i;
+    this._recursive(previousBounds, -1, zoomLevel-1, function(c){
+        //Remove markers at every level
+        for( i  = c._markers.length - 1; i>=0; i--){
+            m = c._markers[i];
+
+            if (!exceptBounds || !exceptBounds.contains(m.getPosition())) {
+                c._group._featureGroup.removeMarker(m);
+                if (m.setVisible) {
+                    m.setVisible(true);
+                }
+            }
+        }
+    },
+    function (c) {
+        //Remove child clusters at just the bottom level
+        for (i = c._childClusters.length - 1; i >= 0; i--) {
+            m = c._childClusters[i];
+            if (!exceptBounds || !exceptBounds.contains(m._latlng)) {
+                c._group._featureGroup.removeMarker(m);
+                if (m.setVisible) {
+                    m.setVisible(true);
+                }
+            }
+        }
+    });
+};
+
+Cluster.prototype._recursiveRestoreChildPositions = function (zoomLevel) {
+    //Fix positions of child markers
+    for (var i = this._markers.length - 1; i >= 0; i--) {
+        var nm = this._markers[i];
+        if (nm.bkLatLng) {
+            nm.setPosition(nm.bkLatLng);
+            delete nm.bkLatLng;
+        }
+    }
+
+    if (zoomLevel - 1 === this._zoom) {
+        //Reposition child clusters
+        for (var j = this._childClusters.length - 1; j >= 0; j--) {
+            this._childClusters[j]._restorePosition();
+        }
+    } else {
+        for (var k = this._childClusters.length - 1; k >= 0; k--) {
+            this._childClusters[k]._recursiveRestoreChildPositions(zoomLevel);
+        }
+    }
+};
+
+Cluster.prototype._restorePosition = function () {
+    if(this.bkLatLng){
+       this.setPosition(this.bkLatLng);
+       delete this.bkLatLng;
+    }
+};
+
+Cluster.prototype._recursiveAnimateChildrenIn = function (bounds, center, maxZoom) {
+    this._recursive(bounds, 0, maxZoom - 1, function (c) {
+        var markers = c._markers,
+            i, m;
+
+        for (i = markers.length - 1; i >= 0; i--) {
+            m = markers[i];
+
+            //Only do it if the icon is still on the map
+            if (m.getIcon) {
+                m._setPosition(center);
+                m.setVisible(0);
+            }
+        }
+    }, function (c) {
+        var childClusters = c._childClusters,
+            j, cm;
+
+        for (j = childClusters.length - 1; j >= 0; j--) {
+            cm = childClusters[j];
+            if (cm.getIcon) {
+                cm._setPosition(center);
+                cm.setVisible(0);
+            }
+        }
+    });
+};
+
+Cluster.prototype._recursiveAnimateChildrenInAndAddSelfToMap = function (bounds, previousZoomLevel, newZoomLevel) {
+    this._recursive(bounds, newZoomLevel, 0,
+        function (c) {
+            c._recursiveAnimateChildrenIn(bounds, c._group._map.latLngToLayerPoint(c.getPosition()).round(), previousZoomLevel);
+            //TODO: depthToAnimateIn affects _isSingleParent, if there is a multizoom we may/may not be.
+            //As a hack we only do a animation free zoom on a single level zoom, if someone does multiple levels then we always animate
+            if (c._isSingleParent() && previousZoomLevel - 1 === newZoomLevel) {
+                c.setVisible(true);
+                c._recursiveRemoveChildrenFromMap(bounds, previousZoomLevel); //Immediately remove our children as we are replacing them. TODO previousBounds not bounds
+            } else {
+                c.setVisible(false);
+            }
+            c._addToMap();
+    });
+};
+/**
+ * Run recursively become visible the child markers
+ * or clusters
+ */
+Cluster.prototype._recursiveBecomeVisible = function(bounds, zoomLevel) {
+    this._recursive(bounds, 0, zoomLevel, null, function(c){
+        c.setVisible(true);
+    });
+};
+/**
  * Run the given functions recursively to this and child clusters
  * boundsToApplyTo: a LatLngBounds representing the bounds of what the clusters recursive in to
  * zoomLevelToStart: Zoom level of start running functions(inclusive)
@@ -398,6 +526,7 @@ Cluster.prototype._recursive = function(boundsToApplyTo, zoomLevelToStart, zoomL
             }
         };
 
+    log('Recursively!!');
     if(zoomLevelToStart > zoom){ //Still going down to required depth, just recurse to child clusters
         eachChildCluster(function(i, child){
             if(boundsToApplyTo.intersects(child._bounds)){
@@ -479,4 +608,13 @@ Cluster.prototype._addToMap = function(startPosition) {
       this.setPosition(startPosition);
   }
   this._group._featureGroup.appendMarker(this);
+};
+
+/**
+ * return if is a single pattern
+ * @private
+ */
+Cluster.prototype._isSingleParent = function() {
+    //Don't need to check this._markers as the rest won't work if there are any
+    return this._childClusters.length > 0 && this._childClusters[0]._childCount === this._childCount;
 };
