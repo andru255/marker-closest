@@ -293,7 +293,7 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
     for(;zoom >=0; zoom--){
         console.log('zoom', zoom);
         //make the position of the marker to pixels according the zoom
-        markerPoint = latlngToPoint( this._map, marker.getPosition(), zoom);
+        markerPoint = this._map.latLngToPoint(marker.getPosition(), zoom);
         //try find a cluster closest
         var closest = gridClusters[zoom].getNearObject(markerPoint);
 
@@ -316,7 +316,7 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
 
             //create new Cluster with these 2 in it
             var newCluster = new Cluster(this, zoom, closest, marker);
-            gridClusters[zoom].addObject(newCluster,latlngToPoint(this._map, newCluster.getPosition(), zoom));
+            gridClusters[zoom].addObject(newCluster,this._map.latLngToPoint(newCluster.getPosition(), zoom));
             closest._parent = newCluster;
             marker._parent = newCluster;
 
@@ -325,13 +325,13 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
 
             for(z = zoom -1; z > parent._zoom; z--){
                 lastParent = new Cluster(this, z, lastParent);
-                gridClusters[z].addObject(lastParent,latlngToPoint(this._map, closest.getPosition(), z));
+                gridClusters[z].addObject(lastParent, this._map.latLngToPoint(closest.getPosition(), z));
             }
             parent.addMarker(lastParent);
 
             //Removes closest from this zoom level and any above that it is in, replace with newCluster
             for(z = zoom; z >=0; z--){
-                if(!gridUnclustered[z].removeObj(closest, latlngToPoint(this._map, closest.getPosition(), z))){
+                if(!gridUnclustered[z].removeObj(closest, this._map.latLngToPoint(closest.getPosition(), z))){
                     break;
                 }
             }
@@ -884,18 +884,25 @@ MarkerClusterer.prototype._animationZoomOutSingle = function(cluster, previousZo
         me._animationEnd();
     });
 };
+
 /**
 * @param {google.maps.Map} map
 * @param {google.maps.LatLng} latlng
 * @param {int} z
 * @return {google.maps.Point}
 */
-var latlngToPoint = function(map, latlng, z){
-	var normalizedPoint = map.getProjection().fromLatLngToPoint(latlng); // returns x,y normalized to 0~255
-	var scale = Math.pow(2, z);
-	var pixelCoordinate = new google.maps.Point(normalizedPoint.x * scale, normalizedPoint.y * scale);
-	return pixelCoordinate;
+google.maps.Map.prototype.latLngToPoint = function(LatLng, z){
+    var normalizedPoint = this.getProjection().fromLatLngToPoint(LatLng);
+    var scale = Math.pow(2, z);
+    var pixelCoordinate = new google.maps.Point(normalizedPoint.x * scale, normalizedPoint.y * scale);
+    return pixelCoordinate;
 };
+//var latlngToPoint = function(map, latlng, z){
+	//var normalizedPoint = map.getProjection().fromLatLngToPoint(latlng); // returns x,y normalized to 0~255
+	//var scale = Math.pow(2, z);
+	//var pixelCoordinate = new google.maps.Point(normalizedPoint.x * scale, normalizedPoint.y * scale);
+	//return pixelCoordinate;
+//};
 
 /**
 * @param {google.maps.Map} map
@@ -903,11 +910,17 @@ var latlngToPoint = function(map, latlng, z){
 * @param {int} z
 * @return {google.maps.LatLng}
 */
-var pointToLatlng = function(map, point, z){
-	var scale = Math.pow(2, z);
-	var normalizedPoint = new google.maps.Point(point.x / scale, point.y / scale);
-	var latlng = map.getProjection().fromPointToLatLng(normalizedPoint);
-	return latlng;
+//var pointToLatlng = function(map, point, z){
+	//var scale = Math.pow(2, z);
+	//var normalizedPoint = new google.maps.Point(point.x / scale, point.y / scale);
+	//var latlng = map.getProjection().fromPointToLatLng(normalizedPoint);
+	//return latlng;
+//};
+google.maps.Map.prototype.pointToLatlng = function(point, z){
+    var scale = Math.pow(2, z);
+    var normalizedPoint = new google.maps.Point(point.x / scale, point.y / scale);
+    var latlng = this.getProjection().fromPointToLatLng(normalizedPoint);
+    return latlng;
 };
 
 //polyfill

@@ -465,7 +465,7 @@ Cluster.prototype._recursiveAnimateChildrenIn = function (bounds, center, maxZoo
 
             //Only do it if the icon is still on the map
             if (m.getIcon) {
-                m._setPosition(center);
+                m.setPosition(center);
                 m.setVisible(0);
             }
         }
@@ -486,7 +486,7 @@ Cluster.prototype._recursiveAnimateChildrenIn = function (bounds, center, maxZoo
 Cluster.prototype._recursiveAnimateChildrenInAndAddSelfToMap = function (bounds, previousZoomLevel, newZoomLevel) {
     this._recursive(bounds, newZoomLevel, 0,
         function (c) {
-            c._recursiveAnimateChildrenIn(bounds, c._group._map.latLngToLayerPoint(c.getPosition()).round(), previousZoomLevel);
+            c._recursiveAnimateChildrenIn(bounds, c._group._map.latLngToPoint(c.getPosition()).round(), previousZoomLevel);
             //TODO: depthToAnimateIn affects _isSingleParent, if there is a multizoom we may/may not be.
             //As a hack we only do a animation free zoom on a single level zoom, if someone does multiple levels then we always animate
             if (c._isSingleParent() && previousZoomLevel - 1 === newZoomLevel) {
