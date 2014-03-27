@@ -16,7 +16,7 @@ function Cluster(group, zoom, pointA, pointB) {
 
     this._iconNeedsUpdate = true;
 
-    this._clusterIcon = new ClusterIcon(this, this._group.getStyles(), this._group.getGridSize());
+    this._clusterIcon = null;
 
     if(pointA){
        this.addMarker(pointA);
@@ -295,7 +295,11 @@ Cluster.prototype.setPosition = function(position) {
  * @param {google.maps.LatLng} The cluster center.
  */
 Cluster.prototype.setMap = function(position) {
-    this.updateIcon();
+    if(position === null){
+        this._clusterIcon.setMap(null);
+    } else {
+        this.getIcon();
+    }
 };
 
 /**
@@ -331,9 +335,14 @@ Cluster.prototype.getMap = function() {
 
 
 /**
- * Updates the cluster icon
+ * get the cluster icon
  */
-Cluster.prototype.updateIcon = function() {
+Cluster.prototype.getIcon = function() {
+
+  if(this._clusterIcon === null){
+    this._clusterIcon = new ClusterIcon(this, this._group.getStyles(), this._group.getGridSize());
+  };
+
   var numStyles = this._group.getStyles().length;
   var sums = this._calculator(this.getChildCount(), numStyles);
   var that = this;
@@ -354,22 +363,30 @@ Cluster.prototype.updateIcon = function() {
  * */
 Cluster.prototype.setVisible = function(flag){
     if(flag){
-        this.updateIcon();
+        this.getIcon();
     } else {
         this._clusterIcon.hide();
     }
 };
 
 /**
+ * handles the visibility of the clusterer
+ * @private
+ * */
+Cluster.prototype.getVisible = function(){
+    return this._clusterIcon._visible;
+};
+/**
  * Run recursively append the child markers
  * or clusters
  */
 Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bounds) {
+    console.log('bounds.getSouthWest', bounds.getSouthWest());
+    console.log('bounds.getNorthEast', bounds.getNorthEast());
     this._recursive(bounds, -1, zoomLevel, function(c){
         if(zoomLevel === c._zoom){
             return;
         }
-        log('c._markers', c._markers);
         //Add the child markers at startpos
         for(var i = c._markers.length -1; i >=0; i--){
             var m = c._markers[i];
@@ -381,14 +398,16 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
             if(startPos){
                 m._bkLatLng = m.getPosition();
                 m.setPosition(startPos);
-                if(m.setVisible){
+                if(m.getVisible()){
                    m.setVisible(false);
                 }
             }
 
+            console.log('adicionando Marker:', m);
             c._group._featureGroup.appendMarker(m);
         }
     }, function(c){
+        console.log('adicionando Cluster:', c);
         c._addToMap(startPos);
     });
 };
@@ -430,9 +449,9 @@ Cluster.prototype._recursiveRestoreChildPositions = function (zoomLevel) {
     //Fix positions of child markers
     for (var i = this._markers.length - 1; i >= 0; i--) {
         var nm = this._markers[i];
-        if (nm.bkLatLng) {
-            nm.setPosition(nm.bkLatLng);
-            delete nm.bkLatLng;
+        if (nm._bkLatLng ) {
+            nm.setPosition(nm._bkLatLng);
+            delete nm._bkLatLng;
         }
     }
 
@@ -449,9 +468,9 @@ Cluster.prototype._recursiveRestoreChildPositions = function (zoomLevel) {
 };
 
 Cluster.prototype._restorePosition = function () {
-    if(this.bkLatLng){
-       this.setPosition(this.bkLatLng);
-       delete this.bkLatLng;
+    if(this._bkLatLng){
+       this.setPosition(this._bkLatLng);
+       delete this._bkLatLng;
     }
 };
 
@@ -466,7 +485,7 @@ Cluster.prototype._recursiveAnimateChildrenIn = function (bounds, center, maxZoo
             //Only do it if the icon is still on the map
             if (m.getIcon) {
                 m.setPosition(center);
-                m.setVisible(0);
+                m.setVisible(false);
             }
         }
     }, function (c) {
@@ -476,8 +495,8 @@ Cluster.prototype._recursiveAnimateChildrenIn = function (bounds, center, maxZoo
         for (j = childClusters.length - 1; j >= 0; j--) {
             cm = childClusters[j];
             if (cm.getIcon) {
-                cm._setPosition(center);
-                cm.setVisible(0);
+                cm.setPosition(center);
+                cm.setVisible(true);
             }
         }
     });
@@ -526,7 +545,6 @@ Cluster.prototype._recursive = function(boundsToApplyTo, zoomLevelToStart, zoomL
             }
         };
 
-    log('Recursively!!');
     if(zoomLevelToStart > zoom){ //Still going down to required depth, just recurse to child clusters
         eachChildCluster(function(i, child){
             if(boundsToApplyTo.intersects(child._bounds)){
@@ -604,7 +622,7 @@ Cluster.prototype.getCalculator = function() {
  */
 Cluster.prototype._addToMap = function(startPosition) {
   if(startPosition){
-      this.bkLatLng = this.getPosition();
+      this._bkLatLng = this.getPosition();
       this.setPosition(startPosition);
   }
   this._group._featureGroup.appendMarker(this);

@@ -302,6 +302,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 
 	//Removes all layers from the MarkerClusterGroup
 	clearLayers: function () {
+        console.log('clear!!!');
 		//Need our own special implementation as the LayerGroup one doesn't work for us
 
 		//If we aren't on the map (yet), blow away the markers we know of
@@ -775,7 +776,6 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 
 		//Find the lowest zoom level to slot this one in
 		for (; zoom >= 0; zoom--) {
-            console.log('zoom', zoom);
 			markerPoint = this._map.project(layer.getLatLng(), zoom); // calculate pixel position
 			//Try find a cluster close by
 			var closest = gridClusters[zoom].getNearObject(markerPoint);
@@ -847,6 +847,9 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 
 		//Incase we are starting to split before the animation finished
 		this._processQueue();
+
+        console.log('this._zoom', this._zoom);
+        console.log('this._map.getZoom()', this._map.getZoom());
 
 		if (this._zoom < this._map._zoom && this._currentShownBounds.contains(this._getExpandedVisibleBounds())) { //Zoom in, split
 			this._animationStart();
@@ -1301,7 +1304,8 @@ L.MarkerCluster = L.Marker.extend({
 	},
 
 	_recursivelyAddChildrenToMap: function (startPos, zoomLevel, bounds) {
-        console.log('_recursiveAppendChildToMap');
+        console.log('bounds.getSouthWest', bounds.getSouthWest());
+        console.log('bounds.getNorthEast', bounds.getNorthEast());
 		this._recursively(bounds, -1, zoomLevel,
 			function (c) {
 
@@ -1309,7 +1313,6 @@ L.MarkerCluster = L.Marker.extend({
 					return;
 				}
 
-                console.log('c._markers', c._markers);
 				//Add our child markers at startPos (so they can be animated out)
 				for (var i = c._markers.length - 1; i >= 0; i--) {
 					var nm = c._markers[i];
@@ -1326,16 +1329,19 @@ L.MarkerCluster = L.Marker.extend({
 							nm.setOpacity(0);
 						}
 					}
+                    console.log('adicionando Marker:', nm);
                     c._group._featureGroup.addLayer(nm);
 				}
 			},
 			function (c) {
+                    console.log('adicionando Cluster:', c);
 				c._addToMap(startPos);
 			}
 		);
 	},
 
 	_recursivelyRestoreChildPositions: function (zoomLevel) {
+        console.log('restore!!');
 		//Fix positions of child markers
 		for (var i = this._markers.length - 1; i >= 0; i--) {
 			var nm = this._markers[i];
@@ -1405,8 +1411,6 @@ L.MarkerCluster = L.Marker.extend({
 		var childClusters = this._childClusters,
 		    zoom = this._zoom,
 			i, c;
-
-        console.log('Recursively!!');
 
 		if (zoomLevelToStart > zoom) { //Still going down to required depth, just recurse to child clusters
 			for (i = childClusters.length - 1; i >= 0; i--) {

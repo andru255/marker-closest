@@ -68,6 +68,7 @@ featureOverlay.prototype.existsMarker = function(marker){
 featureOverlay.prototype.removeMarker = function(marker){
     this.eachMarker(function(i, e){
         if(e === marker){
+            //log('remover', marker);
             marker.setMap(null);
             delete e;
             return true;

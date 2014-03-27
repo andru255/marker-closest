@@ -202,6 +202,10 @@ MarkerClusterer.prototype.bindEvents = function(){
     this.GE.addListener(this._map, 'zoom_changed', function(){
         that._zoomChanged();
     });
+
+    this.GE.addListener(this._map, 'dragend', function(){
+        that._moveEnd();
+    });
     //when is idle
     this.GE.addListener(this._map, 'idle', function(){
         that.idleCluster && that.idleCluster.apply(this);
@@ -291,7 +295,6 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
 
     //for each zoom
     for(;zoom >=0; zoom--){
-        console.log('zoom', zoom);
         //make the position of the marker to pixels according the zoom
         markerPoint = this._map.latLngToPoint(marker.getPosition(), zoom);
         //try find a cluster closest
@@ -344,8 +347,6 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
     this._topClusterer.addMarker(marker);
     marker._parent = this._topClusterer;
     return;
-    //find the lowest zoom lovel to slot one in
-    //this.createClusters_();
 };
 
 /**
@@ -354,7 +355,6 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
  * @private
  */
 MarkerClusterer.prototype.addMarker = function(marker){
-    console.log('add marker');
     //verify if the overlayview its loaded
     //because the overlay projection's value it's necessary
     if(!this._load){
@@ -404,7 +404,6 @@ MarkerClusterer.prototype.addMarker = function(marker){
 };
 
 MarkerClusterer.prototype._generateInitialClusters = function(marker){
-    log('generateInitialClusters!');
     var maxZoom = this.maxZoom,
         radio = this.settings.maxClusterRadio,
         radioFn = radio;
@@ -733,13 +732,25 @@ MarkerClusterer.prototype._zoomChanged = function(){
  *  @private
  */
 MarkerClusterer.prototype._mergeSplitClusters  = function(){
+    //process the queue
     this._processQueue();
-    if(this._zoom < this._map.getZoom() && this._currentShownBounds.contains(this._getExpandedVisibleBounds().getCenter())){
+
+    console.log('this._zoom', this._zoom);
+    console.log('this._map.getZoom()', this._map.getZoom());
+
+    if(this._zoom < this._map.getZoom() &&
+       this._currentShownBounds.contains(this._getExpandedVisibleBounds().getCenter())){//Zoom in, split
+        //start the animation
+        this._animationStart();
+        //Remove clusters now off screen
         this._topClusterer._recursiveRemoveChildrenFromMap(this._currentShownBounds, this._zoom, this._getExpandedVisibleBounds());
         this._animationZoomIn(this._zoom, this._map.getZoom());
+
     } else if(this._zoom > this._map.getZoom()){//Zoom out, merge
+        //Remove clusters now off screen
         this._animationStart();
         this._animationZoomOut(this._zoom, this._map.getZoom());
+
     } else {
         this._moveEnd();
     }
@@ -832,7 +843,7 @@ MarkerClusterer.prototype._moveEnd = function(){
     var newBounds = this._getExpandedVisibleBounds();
 
     this._topClusterer._recursiveRemoveChildrenFromMap(this._currentShownBounds, this._zoom, newBounds);
-    this._topClusterer._recursiveAddChildrenToMap(null, this._map.getZoom(), newBounds);
+    this._topClusterer._recursiveAppendChildToMap(null, this._map.getZoom(), newBounds);
 
     this._currentShownBounds = newBounds;
     return;
@@ -872,8 +883,8 @@ MarkerClusterer.prototype._animationZoomOutSingle = function(cluster, previousZo
         if (cluster._childCount === 1) {
             var m = cluster._markers[0];
             //If we were in a cluster animation at the time then the opacity and position of our child could be wrong now, so fix it
-            m.setLatLng(m.getPosition());
-            if (m.setVisible) {
+            m.setPosition(m.getPosition());
+            if (m.getVisible()) {
                 m.setVisible(true);
             }
         } else {
