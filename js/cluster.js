@@ -290,12 +290,13 @@ Cluster.prototype.setPosition = function(position) {
 };
 
 /**
- * Set the position/center of the cluster.
+ * Set the map of the cluster.
  *
- * @param {google.maps.LatLng} The cluster center.
+ * @param {google.maps.LatLng} map
  */
-Cluster.prototype.setMap = function(position) {
-    if(position === null){
+Cluster.prototype.setMap = function(map) {
+    log('map', map);
+    if(map === null){
         this._clusterIcon.setMap(null);
     } else {
         this.getIcon();
@@ -387,6 +388,7 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
         if(zoomLevel === c._zoom){
             return;
         }
+        console.log('c._markers', c._markers.length);
         //Add the child markers at startpos
         for(var i = c._markers.length -1; i >=0; i--){
             var m = c._markers[i];
@@ -403,11 +405,11 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
                 }
             }
 
-            console.log('adicionando Marker:', m);
+            console.log('adicionando Marker:', m.getPosition());
             c._group._featureGroup.appendMarker(m);
         }
     }, function(c){
-        console.log('adicionando Cluster:', c);
+        console.log('adicionando Cluster:', c.getPosition());
         c._addToMap(startPos);
     });
 };

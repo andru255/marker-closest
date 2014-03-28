@@ -939,6 +939,7 @@ L.MarkerClusterGroup.include(!L.DomUtil.TRANSITION ? {
 		this.fire('animationend');
 	},
 	_animationZoomIn: function (previousZoomLevel, newZoomLevel) {
+        console.log('_animationZoomIn');
 		var bounds = this._getExpandedVisibleBounds(),
 		    fg = this._featureGroup,
 		    i;
@@ -1313,6 +1314,7 @@ L.MarkerCluster = L.Marker.extend({
 					return;
 				}
 
+                console.log('c._markers', c._markers.length);
 				//Add our child markers at startPos (so they can be animated out)
 				for (var i = c._markers.length - 1; i >= 0; i--) {
 					var nm = c._markers[i];
@@ -1329,19 +1331,18 @@ L.MarkerCluster = L.Marker.extend({
 							nm.setOpacity(0);
 						}
 					}
-                    console.log('adicionando Marker:', nm);
+                    console.log('adicionando Marker:', nm.getLatLng());
                     c._group._featureGroup.addLayer(nm);
 				}
 			},
 			function (c) {
-                    console.log('adicionando Cluster:', c);
+                    console.log('adicionando Cluster:', c._cLatLng);
 				c._addToMap(startPos);
 			}
 		);
 	},
 
 	_recursivelyRestoreChildPositions: function (zoomLevel) {
-        console.log('restore!!');
 		//Fix positions of child markers
 		for (var i = this._markers.length - 1; i >= 0; i--) {
 			var nm = this._markers[i];

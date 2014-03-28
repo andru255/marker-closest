@@ -760,6 +760,7 @@ MarkerClusterer.prototype._mergeSplitClusters  = function(){
  *  @private
  */
 MarkerClusterer.prototype._animationZoomIn = function(previousZoomLevel, newZoomLevel){
+    log('_animationZoomIn');
     var bounds = this._getExpandedVisibleBounds(),
         fg = this._featureGroup,
         i;
@@ -777,6 +778,10 @@ MarkerClusterer.prototype._animationZoomIn = function(previousZoomLevel, newZoom
         if (c._isSingleParent() && previousZoomLevel + 1 === newZoomLevel) { //Immediately add the new child and remove us
             fg.removeMarker(c);
             c._recursiveAppendChildToMap(null, newZoomLevel, bounds);
+        } else {
+            //fadeOut the old cluster
+            c.setVisible(false);
+            c._recursiveAppendChildToMap(startPos, newZoomLevel, bounds);
         }
 
         //Remove all markers that aren't visible any more
@@ -793,7 +798,7 @@ MarkerClusterer.prototype._animationZoomIn = function(previousZoomLevel, newZoom
     //update opacities
     this._topClusterer._recursiveBecomeVisible(bounds, newZoomLevel);
     //TODO Maybe? Update markers in _recursiveBecomeVisible
-    fg.eachMarker(function (n) {
+    fg.eachMarker(function (i , n) {
         if (!(n instanceof Cluster) && n.getIcon) {
             n.setVisible(true);
         }
@@ -853,7 +858,7 @@ MarkerClusterer.prototype._moveEnd = function(){
  *  @private
  */
 MarkerClusterer.prototype._animationZoomOut = function(previousZoomLevel, newZoomLevel){
-    this._animationZoomOutSingle(this._topClusterer, previousZoomLevel -1, newZoomLevel);
+    this._animationZoomOutSingle(this._topClusterer, previousZoomLevel - 1, newZoomLevel);
     //Need to add markers for those that weren't on the map before but are now
     this._topClusterer._recursiveAppendChildToMap(null, newZoomLevel, this._getExpandedVisibleBounds());
     //Remove markers that were on the map before but won't be now
