@@ -571,9 +571,10 @@ MarkerClusterer.prototype._remove = function(marker, removeFromDistanceGrid, don
             cluster._parent._markers.push(otherMarker);
             otherMarker._parent = cluster._parent;
 
-            if(cluster._icon){
+            if(cluster.getIcon()){
                 //Cluster is currently on the map, need to put the marker on the map instead
                 fg.removeMarker(cluster);
+                cluster.setVisible(false);
             }
 
         } else {
@@ -777,6 +778,7 @@ MarkerClusterer.prototype._animationZoomIn = function(previousZoomLevel, newZoom
 
         if (c._isSingleParent() && previousZoomLevel + 1 === newZoomLevel) { //Immediately add the new child and remove us
             fg.removeMarker(c);
+            c.setVisible(false);
             c._recursiveAppendChildToMap(null, newZoomLevel, bounds);
         } else {
             //fadeOut the old cluster

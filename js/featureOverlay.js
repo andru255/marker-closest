@@ -45,11 +45,8 @@ featureOverlay.prototype.stamp = (function(){
 featureOverlay.prototype.appendMarker = function(marker){
     if(!this.existsMarker(marker)){
         marker.id = this.stamp(marker);
-        marker.addedIn = true;
         this._collection.push(marker);
-        if(this._map){
-            marker.setMap(this._map);
-        }
+        marker.setMap(this._map);
     }
 };
 
@@ -61,17 +58,20 @@ featureOverlay.prototype.appendTo = function(map){
 
 //Verify if exists in the collection or already added
 featureOverlay.prototype.existsMarker = function(marker){
-    return marker.addedIn || false;
+    this.eachMarker(function(i, e){
+        if(e._id === marker._id){
+            return true;
+        }
+    });
 };
 
 //remove an Element of the collection
 featureOverlay.prototype.removeMarker = function(marker){
+    var that = this;
     this.eachMarker(function(i, e){
-        if(e === marker){
-            //log('remover', marker);
-            marker.setMap(null);
-            delete e;
-            return true;
+        if(e._id === marker._id){
+            e.setMap(null);
+            that._collection.splice(i, 1);
         }
     });
 };

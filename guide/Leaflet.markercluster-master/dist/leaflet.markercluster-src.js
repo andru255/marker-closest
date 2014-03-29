@@ -1170,6 +1170,7 @@ L.MarkerCluster = L.Marker.extend({
 	},
 
 	_updateIcon: function () {
+        console.log('updateIcon!');
 		this._iconNeedsUpdate = true;
 		if (this._icon) {
 			this.setIcon(this);
@@ -1177,13 +1178,14 @@ L.MarkerCluster = L.Marker.extend({
 	},
 
 	//Cludge for Icon, we pretend to be an icon for performance
-	createIcon: function () {
-		if (this._iconNeedsUpdate) {
-			this._iconObj = this._group.options.iconCreateFunction(this);
-			this._iconNeedsUpdate = false;
-		}
-		return this._iconObj.createIcon();
-	},
+    createIcon: function () {
+        console.log('createIcon!');
+        if (this._iconNeedsUpdate) {
+            this._iconObj = this._group.options.iconCreateFunction(this);
+            this._iconNeedsUpdate = false;
+        }
+        return this._iconObj.createIcon();
+    },
 	createShadow: function () {
 		return this._iconObj.createShadow();
 	},
@@ -1305,8 +1307,6 @@ L.MarkerCluster = L.Marker.extend({
 	},
 
 	_recursivelyAddChildrenToMap: function (startPos, zoomLevel, bounds) {
-        console.log('bounds.getSouthWest', bounds.getSouthWest());
-        console.log('bounds.getNorthEast', bounds.getNorthEast());
 		this._recursively(bounds, -1, zoomLevel,
 			function (c) {
 
@@ -1331,12 +1331,14 @@ L.MarkerCluster = L.Marker.extend({
 							nm.setOpacity(0);
 						}
 					}
-                    console.log('adicionando Marker:', nm.getLatLng());
+                    console.log('adicionando Marker:', nm.getLatLng().lat + ',' +nm.getLatLng().lng);
                     c._group._featureGroup.addLayer(nm);
 				}
 			},
 			function (c) {
-                    console.log('adicionando Cluster:', c._cLatLng);
+                window.cccc = c;
+                console.log('adicionando Cluster:', c._cLatLng.lat + ',' + c._cLatLng.lng );
+                console.log('startPos', startPos );
 				c._addToMap(startPos);
 			}
 		);

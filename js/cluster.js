@@ -295,7 +295,6 @@ Cluster.prototype.setPosition = function(position) {
  * @param {google.maps.LatLng} map
  */
 Cluster.prototype.setMap = function(map) {
-    log('map', map);
     if(map === null){
         this._clusterIcon.setMap(null);
     } else {
@@ -356,6 +355,7 @@ Cluster.prototype.getIcon = function() {
       that.zoomToBounds();
   });
   this._clusterIcon.show();
+  console.log('this._clusterIcon', this._clusterIcon);
 };
 
 /**
@@ -366,7 +366,9 @@ Cluster.prototype.setVisible = function(flag){
     if(flag){
         this.getIcon();
     } else {
-        this._clusterIcon.hide();
+        if(this._clusterIcon){
+            this._clusterIcon.hide();
+        }
     }
 };
 
@@ -382,8 +384,6 @@ Cluster.prototype.getVisible = function(){
  * or clusters
  */
 Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bounds) {
-    console.log('bounds.getSouthWest', bounds.getSouthWest());
-    console.log('bounds.getNorthEast', bounds.getNorthEast());
     this._recursive(bounds, -1, zoomLevel, function(c){
         if(zoomLevel === c._zoom){
             return;
@@ -405,11 +405,12 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
                 }
             }
 
-            console.log('adicionando Marker:', m.getPosition());
+            console.log('adicionando Marker:', m.getPosition().lat() + ',' +m.getPosition().lng());
             c._group._featureGroup.appendMarker(m);
         }
     }, function(c){
-        console.log('adicionando Cluster:', c.getPosition());
+        console.log('adicionando Cluster:', c.getPosition().lat() + ',' + c.getPosition().lng());
+        console.log('startPos', startPos );
         c._addToMap(startPos);
     });
 };
@@ -427,8 +428,8 @@ Cluster.prototype._recursiveRemoveChildrenFromMap = function(previousBounds, zoo
 
             if (!exceptBounds || !exceptBounds.contains(m.getPosition())) {
                 c._group._featureGroup.removeMarker(m);
-                if (m.setVisible) {
-                    m.setVisible(true);
+                if (m.getVisible()) {
+                    m.setVisible(false);
                 }
             }
         }
@@ -439,8 +440,8 @@ Cluster.prototype._recursiveRemoveChildrenFromMap = function(previousBounds, zoo
             m = c._childClusters[i];
             if (!exceptBounds || !exceptBounds.contains(m._latlng)) {
                 c._group._featureGroup.removeMarker(m);
-                if (m.setVisible) {
-                    m.setVisible(true);
+                if (m.getVisible()) {
+                    m.setVisible(false);
                 }
             }
         }
@@ -485,7 +486,7 @@ Cluster.prototype._recursiveAnimateChildrenIn = function (bounds, center, maxZoo
             m = markers[i];
 
             //Only do it if the icon is still on the map
-            if (m.getIcon) {
+            if (m.getIcon()) {
                 m.setPosition(center);
                 m.setVisible(false);
             }
@@ -496,7 +497,7 @@ Cluster.prototype._recursiveAnimateChildrenIn = function (bounds, center, maxZoo
 
         for (j = childClusters.length - 1; j >= 0; j--) {
             cm = childClusters[j];
-            if (cm.getIcon) {
+            if (cm.getIcon()) {
                 cm.setPosition(center);
                 cm.setVisible(true);
             }
