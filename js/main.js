@@ -6,10 +6,10 @@ function initialize() {
     var center = new google.maps.LatLng(-37.82, 175.24);
 
     var map = new google.maps.Map(document.getElementById('map'), {
-                    zoom: 13,
+                    zoom: 1,
                     center: center,
                     mapTypeId: google.maps.MapTypeId.ROADMAP,
-                    maxZoom: 17
+                    maxZoom: 5
                 });
 
     //var oms = new OverlappingMarkerSpiderfier(map, {markersWontMove: true, markersWontHide: true});

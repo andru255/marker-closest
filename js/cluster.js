@@ -82,9 +82,6 @@ Cluster.prototype.zoomToBounds = function(){
         mapZoom = map.getZoom(),
         i;
 
-    console.log('this._bounds', this._bounds);
-    console.log('boundsZoom', boundsZoom);
-
     while(childClusters.length > 0 && boundsZoom > zoom){
         zoom++;
         var newClusters = [];
@@ -384,6 +381,7 @@ Cluster.prototype.getVisible = function(){
  * or clusters
  */
 Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bounds) {
+        console.log('bounds', bounds.getSouthWest() + ',' + bounds.getNorthEast());
     this._recursive(bounds, -1, zoomLevel, function(c){
         if(zoomLevel === c._zoom){
             return;
@@ -392,6 +390,7 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
         //Add the child markers at startpos
         for(var i = c._markers.length -1; i >=0; i--){
             var m = c._markers[i];
+            console.log('marker', m);
 
             if(!bounds.contains(m.getPosition())){
                 continue;

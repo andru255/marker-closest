@@ -776,7 +776,9 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 
 		//Find the lowest zoom level to slot this one in
 		for (; zoom >= 0; zoom--) {
+            console.log('zoom', zoom);
 			markerPoint = this._map.project(layer.getLatLng(), zoom); // calculate pixel position
+            console.log('markerPoint', markerPoint);
 			//Try find a cluster close by
 			var closest = gridClusters[zoom].getNearObject(markerPoint);
 			if (closest) {
@@ -847,9 +849,6 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 
 		//Incase we are starting to split before the animation finished
 		this._processQueue();
-
-        console.log('this._zoom', this._zoom);
-        console.log('this._map.getZoom()', this._map.getZoom());
 
 		if (this._zoom < this._map._zoom && this._currentShownBounds.contains(this._getExpandedVisibleBounds())) { //Zoom in, split
 			this._animationStart();
@@ -1307,6 +1306,7 @@ L.MarkerCluster = L.Marker.extend({
 	},
 
 	_recursivelyAddChildrenToMap: function (startPos, zoomLevel, bounds) {
+        console.log('bounds', bounds.getSouthWest() + ',' + bounds.getNorthEast());
 		this._recursively(bounds, -1, zoomLevel,
 			function (c) {
 
@@ -1331,12 +1331,12 @@ L.MarkerCluster = L.Marker.extend({
 							nm.setOpacity(0);
 						}
 					}
+                    console.log('marker', nm);
                     console.log('adicionando Marker:', nm.getLatLng().lat + ',' +nm.getLatLng().lng);
                     c._group._featureGroup.addLayer(nm);
 				}
 			},
 			function (c) {
-                window.cccc = c;
                 console.log('adicionando Cluster:', c._cLatLng.lat + ',' + c._cLatLng.lng );
                 console.log('startPos', startPos );
 				c._addToMap(startPos);

@@ -295,8 +295,10 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
 
     //for each zoom
     for(;zoom >=0; zoom--){
+        console.log('zoom', zoom);
         //make the position of the marker to pixels according the zoom
         markerPoint = this._map.latLngToPoint(marker.getPosition(), zoom);
+        console.log('markerPoint', markerPoint);
         //try find a cluster closest
         var closest = gridClusters[zoom].getNearObject(markerPoint);
 
@@ -736,9 +738,6 @@ MarkerClusterer.prototype._mergeSplitClusters  = function(){
     //process the queue
     this._processQueue();
 
-    console.log('this._zoom', this._zoom);
-    console.log('this._map.getZoom()', this._map.getZoom());
-
     if(this._zoom < this._map.getZoom() &&
        this._currentShownBounds.contains(this._getExpandedVisibleBounds().getCenter())){//Zoom in, split
         //start the animation
@@ -761,7 +760,7 @@ MarkerClusterer.prototype._mergeSplitClusters  = function(){
  *  @private
  */
 MarkerClusterer.prototype._animationZoomIn = function(previousZoomLevel, newZoomLevel){
-    log('_animationZoomIn');
+    //log('_animationZoomIn');
     var bounds = this._getExpandedVisibleBounds(),
         fg = this._featureGroup,
         i;
