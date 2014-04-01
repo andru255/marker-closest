@@ -298,6 +298,7 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
         console.log('zoom', zoom);
         //make the position of the marker to pixels according the zoom
         markerPoint = this._map.latLngToPoint(marker.getPosition(), zoom);
+        console.log('getLatLng', marker.getPosition());
         console.log('markerPoint', markerPoint);
         //try find a cluster closest
         var closest = gridClusters[zoom].getNearObject(markerPoint);

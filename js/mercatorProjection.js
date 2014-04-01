@@ -37,7 +37,7 @@ MercatorProjection.prototype.fromLatLngToPoint = function(latLng, optPoint){
     var siny = bound(Math.sin(degressToRadians(latLng.lat())), -0.9999, 0.9999);
 
     //override the axis y of the point
-    point.y = origin.y + 0.5 * Math.log( (1 + siny) / (1 - siny) ) * -that._pixelsPerLonRadian;
+    point.y = origin.y + latLng.lat() * that._pixelsPerLonDegree;
 
     return point;
 };
@@ -48,7 +48,7 @@ MercatorProjection.prototype.fromPointToLatLng = function(point){
         origin = that._pixelOrigin,
         lng = (point.x - origin.x) / that._pixelsPerLonDegree,
         latRadians = (point.y - origin.y) / -me._pixelsPerLonRadian,
-        lat = radiansTodegress(2 * Math.atan(Math.exp(latRadians)) - Math.PI / 2);
+        lat = (point.y - origin.y) / that._pixelsPerLonDegree;
 
     return new google.maps.LatLng(lat, lng);
 };

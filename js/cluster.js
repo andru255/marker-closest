@@ -407,7 +407,7 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
                 }
             }
 
-            //console.log('adicionando Marker:', m.getPosition().lat() + ',' +m.getPosition().lng());
+            console.log('adicionando Marker:', m.getPosition().lat() + ',' +m.getPosition().lng());
             //c._group._featureGroup.appendMarker(m);
         }
     }, function(c){

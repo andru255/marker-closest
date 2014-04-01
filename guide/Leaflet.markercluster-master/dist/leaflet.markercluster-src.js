@@ -777,6 +777,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 		//Find the lowest zoom level to slot this one in
 		for (; zoom >= 0; zoom--) {
             console.log('zoom', zoom);
+            console.log('getLatLng', layer.getLatLng());
 			markerPoint = this._map.project(layer.getLatLng(), zoom); // calculate pixel position
             console.log('markerPoint', markerPoint);
 			//Try find a cluster close by
@@ -1317,7 +1318,7 @@ L.MarkerCluster = L.Marker.extend({
 					return;
 				}
 
-                //console.log('c._markers', c._markers.length);
+                console.log('c._markers', c._markers.length);
 				//Add our child markers at startPos (so they can be animated out)
 				for (var i = c._markers.length - 1; i >= 0; i--) {
 					var nm = c._markers[i];
@@ -1334,12 +1335,12 @@ L.MarkerCluster = L.Marker.extend({
 							nm.setOpacity(0);
 						}
 					}
-                    //console.log('adicionando Marker:', nm.getLatLng().lat + ',' +nm.getLatLng().lng);
+                    console.log('adicionando Marker:', nm.getLatLng().lat + ',' +nm.getLatLng().lng);
                     c._group._featureGroup.addLayer(nm);
 				}
 			},
 			function (c) {
-                //console.log('adicionando Cluster:', c._cLatLng.lat + ',' + c._cLatLng.lng );
+                console.log('adicionando Cluster:', c._cLatLng.lat + ',' + c._cLatLng.lng );
 				c._addToMap(startPos);
 			}
 		);
