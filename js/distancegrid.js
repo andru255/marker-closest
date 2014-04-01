@@ -1,12 +1,17 @@
 var DistanceGrid = function(cellSize){
+    //the size of an cell
     this._cellSize = cellSize;
+    //the area of cell
     this._sqCellSize = cellSize * cellSize;
+    //the grid
     this._grid = {};
+    //the _objPoint
     this._objPoint = {};
 };
 
 DistanceGrid.prototype = {
 
+    //generator of unique id for each new point added
     stamp: (function(){
             var lastId = 0,
                 key = '_id';
@@ -16,15 +21,23 @@ DistanceGrid.prototype = {
             }
     }()),
 
+    //adding new obj
     addObject: function(obj, point){
         var x = this._getCoord(point.x),
             y = this._getCoord(point.y),
             grid = this._grid,
+            //instance the row if not exists call an exists else create new row
+            //by the real coord y
             row = grid[y] = grid[y] || {},
+            //instance the cell if not exists call an exists else create new cell
+            //by the real coord x
             cell = row[x] = row[x] || [];
+            //generate the unique id
             stamp = this.stamp(obj);
 
+        //the point object associate with the uniqye id the new point
         this._objPoint[stamp] = point;
+        //append to cell
         cell.push(obj);
     },
 
@@ -106,8 +119,9 @@ DistanceGrid.prototype = {
         return closest;
     },
 
-    _getCoord: function(x){
-        return Math.floor( x / this._cellSize );
+    //get the real Coord for the cell passing an axis
+    _getCoord: function(axis){
+        return Math.floor( axis / this._cellSize );
     },
 
     _sqDist: function(p, p2){

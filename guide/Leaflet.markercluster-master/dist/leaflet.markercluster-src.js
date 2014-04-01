@@ -850,6 +850,9 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 		//Incase we are starting to split before the animation finished
 		this._processQueue();
 
+        console.log('this._zoom', this._zoom);
+        console.log('this._map.getZoom()', this._map.getZoom());
+
 		if (this._zoom < this._map._zoom && this._currentShownBounds.contains(this._getExpandedVisibleBounds())) { //Zoom in, split
 			this._animationStart();
 			//Remove clusters now off screen
@@ -1314,7 +1317,7 @@ L.MarkerCluster = L.Marker.extend({
 					return;
 				}
 
-                console.log('c._markers', c._markers.length);
+                //console.log('c._markers', c._markers.length);
 				//Add our child markers at startPos (so they can be animated out)
 				for (var i = c._markers.length - 1; i >= 0; i--) {
 					var nm = c._markers[i];
@@ -1331,14 +1334,12 @@ L.MarkerCluster = L.Marker.extend({
 							nm.setOpacity(0);
 						}
 					}
-                    console.log('marker', nm);
-                    console.log('adicionando Marker:', nm.getLatLng().lat + ',' +nm.getLatLng().lng);
+                    //console.log('adicionando Marker:', nm.getLatLng().lat + ',' +nm.getLatLng().lng);
                     c._group._featureGroup.addLayer(nm);
 				}
 			},
 			function (c) {
-                console.log('adicionando Cluster:', c._cLatLng.lat + ',' + c._cLatLng.lng );
-                console.log('startPos', startPos );
+                //console.log('adicionando Cluster:', c._cLatLng.lat + ',' + c._cLatLng.lng );
 				c._addToMap(startPos);
 			}
 		);
