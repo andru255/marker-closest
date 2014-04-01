@@ -44,7 +44,6 @@ ClusterIcon.prototype.onClickEvt = function(e) {
  * @ignore
  */
 ClusterIcon.prototype.onAdd = function() {
-  console.log('ClusterIcon.onAdd');
   this._div = document.createElement('DIV');
 
   if (this._visible) {

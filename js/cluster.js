@@ -384,6 +384,7 @@ Cluster.prototype.getVisible = function(){
  * or clusters
  */
 Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bounds) {
+    console.log('bounds', bounds.getNorthEast() + ',' + bounds.getSouthWest());
     this._recursive(bounds, -1, zoomLevel, function(c){
         if(zoomLevel === c._zoom){
             return;
@@ -405,12 +406,12 @@ Cluster.prototype._recursiveAppendChildToMap = function(startPos, zoomLevel, bou
                 }
             }
 
-            console.log('adicionando Marker:', m.getPosition().lat() + ',' +m.getPosition().lng());
-            c._group._featureGroup.appendMarker(m);
+            //console.log('adicionando Marker:', m.getPosition().lat() + ',' +m.getPosition().lng());
+            //c._group._featureGroup.appendMarker(m);
         }
     }, function(c){
         console.log('adicionando Cluster:', c.getPosition().lat() + ',' + c.getPosition().lng());
-        console.log('startPos', startPos );
+        //console.log('startPos', startPos );
         c._addToMap(startPos);
     });
 };
@@ -427,10 +428,10 @@ Cluster.prototype._recursiveRemoveChildrenFromMap = function(previousBounds, zoo
             m = c._markers[i];
 
             if (!exceptBounds || !exceptBounds.contains(m.getPosition())) {
-                c._group._featureGroup.removeMarker(m);
-                if (m.getVisible()) {
-                    m.setVisible(false);
-                }
+                //c._group._featureGroup.removeMarker(m);
+                //if (m.getVisible()) {
+                    //m.setVisible(false);
+                //}
             }
         }
     },
@@ -438,11 +439,12 @@ Cluster.prototype._recursiveRemoveChildrenFromMap = function(previousBounds, zoo
         //Remove child clusters at just the bottom level
         for (i = c._childClusters.length - 1; i >= 0; i--) {
             m = c._childClusters[i];
-            if (!exceptBounds || !exceptBounds.contains(m._latlng)) {
-                c._group._featureGroup.removeMarker(m);
-                if (m.getVisible()) {
-                    m.setVisible(false);
-                }
+            if (!exceptBounds || !exceptBounds.contains(m.getPosition())) {
+                log('BORRAR!!!!!!!!!!!!!!', m);
+                //c._group._featureGroup.removeMarker(m);
+                //if (m.getVisible()) {
+                    //m.setVisible(false);
+                //}
             }
         }
     });

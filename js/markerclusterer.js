@@ -297,6 +297,7 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
     for(;zoom >=0; zoom--){
         //make the position of the marker to pixels according the zoom
         markerPoint = this._map.latLngToPoint(marker.getPosition(), zoom);
+        console.log('markerPoint', markerPoint);
         //try find a cluster closest
         var closest = gridClusters[zoom].getNearObject(markerPoint);
 
@@ -355,6 +356,7 @@ MarkerClusterer.prototype._pushMarkerTo = function(marker, zoom){
  * @private
  */
 MarkerClusterer.prototype.addMarker = function(marker){
+    console.log('adding a simple marker');
     //verify if the overlayview its loaded
     //because the overlay projection's value it's necessary
     if(!this._load){
@@ -910,9 +912,11 @@ MarkerClusterer.prototype._animationZoomOutSingle = function(cluster, previousZo
 * @return {google.maps.Point}
 */
 google.maps.Map.prototype.latLngToPoint = function(LatLng, z){
-    var normalizedPoint = this.getProjection().fromLatLngToPoint(LatLng);
-    var scale = Math.pow(2, z);
-    var pixelCoordinate = new google.maps.Point(normalizedPoint.x * scale, normalizedPoint.y * scale);
+    var projection = new SphericalMercatorProjection();
+    var numTiles = 1 << z;
+    var normalizedPoint = projection.fromLatLngToPoint(LatLng);
+    //var scale = Math.pow(2, z);
+    var pixelCoordinate = new google.maps.Point(normalizedPoint.x * numTiles, normalizedPoint.y * numTiles);
     return pixelCoordinate;
 };
 //var latlngToPoint = function(map, latlng, z){
@@ -935,9 +939,10 @@ google.maps.Map.prototype.latLngToPoint = function(LatLng, z){
 	//return latlng;
 //};
 google.maps.Map.prototype.pointToLatlng = function(point, z){
+    var projection = new SphericalMercatorProjection();
     var scale = Math.pow(2, z);
     var normalizedPoint = new google.maps.Point(point.x / scale, point.y / scale);
-    var latlng = this.getProjection().fromPointToLatLng(normalizedPoint);
+    var latlng = projection.fromPointToLatLng(normalizedPoint);
     return latlng;
 };
 

@@ -777,6 +777,7 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 		//Find the lowest zoom level to slot this one in
 		for (; zoom >= 0; zoom--) {
 			markerPoint = this._map.project(layer.getLatLng(), zoom); // calculate pixel position
+            console.log('markerPoint', markerPoint);
 			//Try find a cluster close by
 			var closest = gridClusters[zoom].getNearObject(markerPoint);
 			if (closest) {
@@ -881,8 +882,8 @@ L.MarkerClusterGroup = L.FeatureGroup.extend({
 			lngDiff = L.Browser.mobile ? 0 : Math.abs(sw.lng - ne.lng);
 
 		return new L.LatLngBounds(
-			new L.LatLng(sw.lat - latDiff, sw.lng - lngDiff, true),
-			new L.LatLng(ne.lat + latDiff, ne.lng + lngDiff, true));
+			new L.LatLng(sw.lat - latDiff, sw.lng - lngDiff),
+			new L.LatLng(ne.lat + latDiff, ne.lng + lngDiff));
 	},
 
 	//Shared animation code
@@ -1307,6 +1308,7 @@ L.MarkerCluster = L.Marker.extend({
 	},
 
 	_recursivelyAddChildrenToMap: function (startPos, zoomLevel, bounds) {
+        console.log('bounds', bounds.getNorthEast() + ',' + bounds.getSouthWest());
 		this._recursively(bounds, -1, zoomLevel,
 			function (c) {
 
@@ -1314,7 +1316,7 @@ L.MarkerCluster = L.Marker.extend({
 					return;
 				}
 
-                console.log('c._markers', c._markers.length);
+                //console.log('c._markers', c._markers.length);
 				//Add our child markers at startPos (so they can be animated out)
 				for (var i = c._markers.length - 1; i >= 0; i--) {
 					var nm = c._markers[i];
@@ -1331,14 +1333,12 @@ L.MarkerCluster = L.Marker.extend({
 							nm.setOpacity(0);
 						}
 					}
-                    console.log('adicionando Marker:', nm.getLatLng().lat + ',' +nm.getLatLng().lng);
+                    //console.log('adicionando Marker:', nm.getLatLng().lat + ',' +nm.getLatLng().lng);
                     c._group._featureGroup.addLayer(nm);
 				}
 			},
 			function (c) {
-                window.cccc = c;
-                console.log('adicionando Cluster:', c._cLatLng.lat + ',' + c._cLatLng.lng );
-                console.log('startPos', startPos );
+                //console.log('adicionando Cluster:', c._cLatLng.lat + ',' + c._cLatLng.lng );
 				c._addToMap(startPos);
 			}
 		);
