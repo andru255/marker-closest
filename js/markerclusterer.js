@@ -911,7 +911,7 @@ MarkerClusterer.prototype._animationZoomOutSingle = function(cluster, previousZo
 * @return {google.maps.Point}
 */
 google.maps.Map.prototype.latLngToPoint = function(LatLng, z){
-    var projection = new MercatorProjection();
+    var projection = new SphericalMercatorProjection();
     var numTiles = 1 << z;
     var normalizedPoint = projection.fromLatLngToPoint(LatLng);
     //var scale = Math.pow(2, z);
@@ -938,7 +938,7 @@ google.maps.Map.prototype.latLngToPoint = function(LatLng, z){
 	//return latlng;
 //};
 google.maps.Map.prototype.pointToLatlng = function(point, z){
-    var projection = new MercatorProjection();
+    var projection = new SphericalMercatorProjection();
     var numTiles = 1 << z;
     var normalizedPoint = new google.maps.Point(point.x / numTiles, point.y / numTiles);
     var latlng = projection.fromPointToLatLng(normalizedPoint);

@@ -128,7 +128,7 @@ DistanceGrid.prototype = {
         var dx = p2.x - p.x,
             dy = p2.y - p.y;
 
-        return ( dx * dx ) + ( dy * dy );
+        return Math.sqrt( ( dx * dx ) + ( dy * dy ) );
     }
 
 };
