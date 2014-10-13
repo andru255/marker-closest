@@ -13,11 +13,11 @@ function markerOverlay(options){
         height: 5,
         width: 5
     };
-    this.st = this.merge(defaults, options);
-    if(!this.st.map){
+    this.settings = this.merge(defaults, options);
+    if(!this.settings.map){
         return;
     }
-    this.setMap(this.st.map);
+    this.setMap(this.settings.map);
     this._div = document.createElement('DIV');
     this._imgIcon = document.createElement('img');
 };
@@ -28,11 +28,11 @@ markerOverlay.prototype.draw = function(){
       zoom = this.getMap().getZoom(),
       position = this.getPosition(),
       location = projection.fromLatLngToDivPixel(position),
-      st =  this.st;
+      settings =  this.settings;
 
   //set the dimentions
-  this._div.style.width = st.width + 'px';
-  this._div.style.height = st.height + 'px';
+  this._div.style.width = settings.width + 'px';
+  this._div.style.height = settings.height + 'px';
   //this._div.style.background = '#00ff' + parseInt(Math.random(1) * 99);
 
   //set the positions in the DOM enviroment
