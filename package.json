@@ -1,0 +1,28 @@
+{
+  "name": "gmaps-cluster",
+  "version": "0.0.1",
+  "description": "Gmaps clusterer",
+  "main": "Gruntfile.js",
+  "scripts": {
+    "test": "grunt nodeunit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andru255/marker-closest.git"
+  },
+  "keywords": [
+    "google-maps"
+  ],
+  "author": "andru255",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/andru255/marker-closest/issues"
+  },
+  "homepage": "https://github.com/andru255/marker-closest",
+  "devDependencies": {
+    "grunt": "0.4.x",
+    "grunt-cli": "0.1.x",
+    "grunt-contrib-jshint": "~0.6.3",
+    "grunt-contrib-concat": "~0.3.0"
+  }
+}
